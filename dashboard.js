@@ -815,8 +815,99 @@ async function renderSettingsView() {
   card.append(row1, row2, row3, row4, rowRestore, row5);
   $content.appendChild(card);
 
+  await renderAutoCloseScope(settings);
   await renderLockedSites();
   renderImportExport();
+}
+
+// ---------------------------------------------------------------------------
+// Auto-close scope (whitelist/blacklist)
+
+async function renderAutoCloseScope(settings) {
+  const list = await getAutoCloseList();
+
+  const title = document.createElement("h3");
+  title.className = "section-title";
+  title.textContent = "Auto-close scope";
+  $content.appendChild(title);
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.padding = "6px 18px";
+
+  const modes = [
+    { value: "all", label: "All sites", desc: "Any eligible tab can be auto-closed." },
+    { value: "except", label: "All sites except the list below", desc: "Sites on the list are never auto-closed (whitelist)." },
+    { value: "only", label: "Only sites on the list below", desc: "Everything else is never auto-closed (blacklist)." },
+  ];
+  for (const mode of modes) {
+    const row = document.createElement("div");
+    row.className = "settings-row";
+    const label = document.createElement("label");
+    label.innerHTML = `${escapeHtml(mode.label)}<div class="meta">${escapeHtml(mode.desc)}</div>`;
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "autoclose-scope";
+    radio.value = mode.value;
+    radio.checked = settings.autoCloseScope === mode.value;
+    radio.addEventListener("change", async () => {
+      const current = await getSettings();
+      await chrome.storage.local.set({
+        settings: { ...current, autoCloseScope: mode.value },
+      });
+      renderAll();
+    });
+    row.append(label, radio);
+    card.appendChild(row);
+  }
+
+  const listWrap = document.createElement("div");
+  if (settings.autoCloseScope === "all") listWrap.className = "hidden-dim";
+
+  for (const site of list) {
+    const row = document.createElement("div");
+    row.className = "settings-row";
+    const label = document.createElement("label");
+    label.textContent = "🌐 " + site;
+    const remove = document.createElement("button");
+    remove.className = "ghost danger";
+    remove.textContent = "🗑";
+    remove.title = "Remove from the scope list";
+    remove.addEventListener("click", async () => {
+      await setAutoCloseList((await getAutoCloseList()).filter((s) => s !== site));
+      renderAll();
+    });
+    row.append(label, remove);
+    listWrap.appendChild(row);
+  }
+
+  const addRow = document.createElement("div");
+  addRow.className = "settings-row";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "e.g. news.ycombinator.com";
+  input.style.flex = "1";
+  const addBtn = document.createElement("button");
+  addBtn.textContent = "＋ Add site";
+  const add = async () => {
+    const pattern = normalizeSitePattern(input.value);
+    if (!pattern) return;
+    const current = await getAutoCloseList();
+    if (!current.includes(pattern)) {
+      current.push(pattern);
+      await setAutoCloseList(current);
+    }
+    renderAll();
+  };
+  addBtn.addEventListener("click", add);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") add();
+  });
+  addRow.append(input, addBtn);
+  listWrap.appendChild(addRow);
+
+  card.appendChild(listWrap);
+  $content.appendChild(card);
 }
 
 // ---------------------------------------------------------------------------
@@ -1078,7 +1169,7 @@ $searchInput.addEventListener("input", () => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.settings) applyTheme();
-  if (changes.lockedSites && state.view === "settings") renderAll();
+  if ((changes.lockedSites || changes.autoCloseList) && state.view === "settings") renderAll();
   if (changes.collections || changes.stats) renderAll();
 });
 

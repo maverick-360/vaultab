@@ -28,8 +28,9 @@ function hostnameOf(url) {
 }
 
 // Mirrors isSiteLocked in common.js: "/" patterns match anywhere in the URL,
-// bare patterns match the hostname or any subdomain.
-function isSiteLocked(url, patterns) {
+// bare patterns match the hostname or any subdomain. Used for both locked
+// sites and the auto-close scope list.
+function matchesSitePatterns(url, patterns) {
   if (!patterns || !patterns.length) return false;
   let host;
   try {
@@ -147,8 +148,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 async function sweep() {
-  const { settings, lockedSites = [] } =
-    await chrome.storage.local.get(["settings", "lockedSites"]);
+  const { settings, lockedSites = [], autoCloseList = [] } =
+    await chrome.storage.local.get(["settings", "lockedSites", "autoCloseList"]);
   const cfg = { ...DEFAULT_SETTINGS, ...settings };
   if (!cfg.autoCloseEnabled) return;
 
@@ -172,7 +173,9 @@ async function sweep() {
     if (tab.active || tab.pinned || tab.audible) continue;
     if (lockedTabs[tab.id]) continue;
     if (!/^https?:/.test(tab.url || "")) continue; // leave chrome:// & extension pages alone
-    if (isSiteLocked(tab.url, lockedSites)) continue;
+    if (matchesSitePatterns(tab.url, lockedSites)) continue;
+    if (cfg.autoCloseScope === "except" && matchesSitePatterns(tab.url, autoCloseList)) continue;
+    if (cfg.autoCloseScope === "only" && !matchesSitePatterns(tab.url, autoCloseList)) continue;
     const last = tabActivity[tab.id];
     if (last === undefined) {
       neverSeen.push(tab.id); // start its clock now

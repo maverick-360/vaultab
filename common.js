@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   autoClosedCap: 200,
   theme: "light",
   restoreRemoves: false,
+  autoCloseScope: "all", // "all" | "except" (skip listed) | "only" (close listed only)
 };
 
 const THEMES = [
@@ -134,6 +135,17 @@ function isSiteLocked(url, patterns) {
       ? lower.includes(p)
       : bare === p || bare.endsWith("." + p) || host === p
   );
+}
+
+// Pattern list for the auto-close scope setting (same matching rules as
+// locked sites; only consulted when autoCloseScope is "except" or "only").
+async function getAutoCloseList() {
+  const { autoCloseList = [] } = await chrome.storage.local.get("autoCloseList");
+  return autoCloseList;
+}
+
+async function setAutoCloseList(autoCloseList) {
+  await chrome.storage.local.set({ autoCloseList });
 }
 
 async function getLockedTabs() {

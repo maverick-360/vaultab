@@ -1,11 +1,13 @@
 async function render() {
-  const [tabs, lockedTabs, settings, lockedSites, sessionData] = await Promise.all([
-    chrome.tabs.query({ currentWindow: true }),
-    getLockedTabs(),
-    getSettings(),
-    getLockedSites(),
-    chrome.storage.session.get("tabActivity"),
-  ]);
+  const [tabs, lockedTabs, settings, lockedSites, autoCloseList, sessionData] =
+    await Promise.all([
+      chrome.tabs.query({ currentWindow: true }),
+      getLockedTabs(),
+      getSettings(),
+      getLockedSites(),
+      getAutoCloseList(),
+      chrome.storage.session.get("tabActivity"),
+    ]);
   const tabActivity = sessionData.tabActivity || {};
 
   const list = document.getElementById("tab-list");
@@ -27,13 +29,16 @@ async function render() {
 
     const countdown = document.createElement("span");
     countdown.className = "countdown";
+    const url = tab.url || "";
     const exempt =
       tab.active ||
       tab.pinned ||
       tab.audible ||
       !!lockedTabs[tab.id] ||
-      isSiteLocked(tab.url || "", lockedSites) ||
-      !/^https?:/.test(tab.url || "");
+      isSiteLocked(url, lockedSites) ||
+      !/^https?:/.test(url) ||
+      (settings.autoCloseScope === "except" && isSiteLocked(url, autoCloseList)) ||
+      (settings.autoCloseScope === "only" && !isSiteLocked(url, autoCloseList));
     if (settings.autoCloseEnabled) {
       if (exempt) {
         countdown.textContent = "∞";

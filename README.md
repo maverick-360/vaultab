@@ -49,6 +49,10 @@ inactive-tab auto-closer.
 14. **Auto-close countdown** — the popup shows estimated minutes until
     each tab auto-closes (∞ for exempt tabs: active, pinned, audible,
     locked, or on a locked site).
+15. **Auto-close scope** — in Settings, choose whether auto-close applies
+    to all sites, all sites *except* a pattern list (whitelist), or *only*
+    the sites on the list (blacklist). Patterns follow the same rules as
+    locked sites and persist across restarts.
 
 ## Install (developer mode)
 
@@ -81,9 +85,10 @@ Stored in `chrome.storage.local`:
 collections: [{ id, name, createdAt, updatedAt,
                 folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
                 tabs: [{ id, title, url, addedAt }] }]
-settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
-               autoClosedCap, theme, restoreRemoves }
-lockedSites: ["mail.google.com", ...]
+settings:      { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
+                 autoClosedCap, theme, restoreRemoves, autoCloseScope }
+lockedSites:   ["mail.google.com", ...]
+autoCloseList: ["news.ycombinator.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
 ```
 
