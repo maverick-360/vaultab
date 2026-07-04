@@ -53,6 +53,21 @@ inactive-tab auto-closer.
     to all sites, all sites *except* a pattern list (whitelist), or *only*
     the sites on the list (blacklist). Patterns follow the same rules as
     locked sites and persist across restarts.
+16. **Stats visualization** — the Stats view renders a grouped bar chart
+    (SVG, no libraries) of the last 14 days of opened/closed/auto-closed
+    counts, plus a "Most auto-closed sites" top-10 ranking backed by
+    uncapped per-hostname counters.
+17. **Keyboard shortcuts** — Ctrl/Cmd+Shift+S saves the current tab to a
+    "Quick saved" collection, Ctrl/Cmd+Shift+L toggles the current tab's
+    lock, Ctrl/Cmd+Shift+K opens the dashboard. Rebind them at
+    `chrome://extensions/shortcuts`. The toolbar badge flashes ✓ / L / U
+    as feedback.
+18. **Undo** — deleting a link, folder, or collection (or removing
+    duplicates) shows a toast with an Undo button for ~6 seconds instead
+    of a confirm dialog. Any newer edit invalidates the pending undo.
+19. **Synced settings** — preferences live in `chrome.storage.sync` and
+    follow you across machines signed into the same Chrome profile.
+    Collections, stats, and site lists stay local.
 
 ## Install (developer mode)
 
@@ -85,11 +100,17 @@ Stored in `chrome.storage.local`:
 collections: [{ id, name, createdAt, updatedAt,
                 folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
                 tabs: [{ id, title, url, addedAt }] }]
-settings:      { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
-                 autoClosedCap, theme, restoreRemoves, autoCloseScope }
 lockedSites:   ["mail.google.com", ...]
 autoCloseList: ["news.ycombinator.com", ...]
-stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
+stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} },
+               autoClosedSites: { hostname: count } }
+```
+
+Stored in `chrome.storage.sync` (follows the Chrome profile):
+
+```
+settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
+               autoClosedCap, theme, restoreRemoves, autoCloseScope }
 ```
 
 ## Import format

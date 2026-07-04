@@ -51,9 +51,20 @@ function matchesSitePatterns(url, patterns) {
 // Setup
 
 chrome.runtime.onInstalled.addListener(async () => {
-  const { settings, stats } = await chrome.storage.local.get(["settings", "stats"]);
+  // Settings live in sync storage; migrate any pre-sync local settings once
+  // (sync values win so another machine's preferences aren't clobbered).
+  const [{ settings: localSettings }, { settings: syncSettings }, { stats }] =
+    await Promise.all([
+      chrome.storage.local.get("settings"),
+      chrome.storage.sync.get("settings"),
+      chrome.storage.local.get("stats"),
+    ]);
+  await chrome.storage.sync.set({
+    settings: { ...DEFAULT_SETTINGS, ...localSettings, ...syncSettings },
+  });
+  if (localSettings) await chrome.storage.local.remove("settings");
+
   await chrome.storage.local.set({
-    settings: { ...DEFAULT_SETTINGS, ...settings },
     stats: stats || { opened: 0, closed: 0, autoClosed: 0, byDay: {} },
   });
   await ensureAutoClosedCollection();
@@ -141,6 +152,62 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 });
 
 // ---------------------------------------------------------------------------
+// Keyboard shortcuts
+
+const QUICK_SAVED_ID = "quick-saved";
+
+function flashBadge(text) {
+  chrome.action.setBadgeText({ text });
+  setTimeout(() => chrome.action.setBadgeText({ text: "" }), 1500);
+}
+
+async function quickSave(tab) {
+  const { collections = [] } = await chrome.storage.local.get("collections");
+  let col = collections.find((c) => c.id === QUICK_SAVED_ID);
+  if (!col) {
+    const ts = Date.now();
+    col = {
+      id: QUICK_SAVED_ID,
+      name: "Quick saved",
+      createdAt: ts,
+      updatedAt: ts,
+      folders: [],
+      tabs: [],
+    };
+    collections.unshift(col);
+  }
+  col.tabs.unshift({
+    id: uid(),
+    title: (tab.title && tab.title.trim()) || hostnameOf(tab.url || ""),
+    url: tab.url || "",
+    addedAt: Date.now(),
+  });
+  col.updatedAt = Date.now();
+  await chrome.storage.local.set({ collections });
+}
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "open-dashboard") {
+    await chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
+    return;
+  }
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab) return;
+
+  if (command === "save-current-tab") {
+    if (!/^https?:/.test(tab.url || "")) return flashBadge("✕");
+    await quickSave(tab);
+    flashBadge("✓");
+  } else if (command === "lock-current-tab") {
+    const { lockedTabs = {} } = await chrome.storage.session.get("lockedTabs");
+    if (lockedTabs[tab.id]) delete lockedTabs[tab.id];
+    else lockedTabs[tab.id] = true;
+    await chrome.storage.session.set({ lockedTabs });
+    flashBadge(lockedTabs[tab.id] ? "L" : "U");
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Auto-close sweep
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -148,8 +215,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 async function sweep() {
-  const { settings, lockedSites = [], autoCloseList = [] } =
-    await chrome.storage.local.get(["settings", "lockedSites", "autoCloseList"]);
+  const [{ settings }, { lockedSites = [], autoCloseList = [] }] = await Promise.all([
+    chrome.storage.sync.get("settings"),
+    chrome.storage.local.get(["lockedSites", "autoCloseList"]),
+  ]);
   const cfg = { ...DEFAULT_SETTINGS, ...settings };
   if (!cfg.autoCloseEnabled) return;
 
@@ -198,7 +267,21 @@ async function sweep() {
 
   await saveToAutoClosed(toClose, cfg.autoClosedCap);
   await bumpStat("autoClosed", toClose.length);
+  await bumpAutoClosedSites(toClose);
   await chrome.tabs.remove(toClose.map((t) => t.id));
+}
+
+// Per-hostname auto-close counts; unlike the Auto Closed collection these
+// are never capped, so the "most auto-closed sites" ranking stays accurate.
+async function bumpAutoClosedSites(tabs) {
+  const { stats } = await chrome.storage.local.get("stats");
+  const s = stats || { opened: 0, closed: 0, autoClosed: 0, byDay: {} };
+  s.autoClosedSites = s.autoClosedSites || {};
+  for (const tab of tabs) {
+    const host = hostnameOf(tab.url || "");
+    if (host) s.autoClosedSites[host] = (s.autoClosedSites[host] || 0) + 1;
+  }
+  await chrome.storage.local.set({ stats: s });
 }
 
 async function saveToAutoClosed(tabs, cap) {

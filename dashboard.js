@@ -16,6 +16,7 @@ const $searchInput = document.getElementById("search-input");
 // Mutation helpers — every write bumps updatedAt on the touched collection.
 
 async function mutateCollections(fn) {
+  hideUndoToast(); // any newer change makes a pending undo snapshot stale
   const collections = await getCollections();
   const touched = fn(collections); // returns collection(s) that changed, or nothing
   const ts = now();
@@ -24,6 +25,46 @@ async function mutateCollections(fn) {
   }
   await setCollections(collections);
   await renderAll();
+}
+
+// Destructive mutation with a toast to undo it: snapshots the collections
+// before applying, restores the snapshot if Undo is clicked in time.
+async function mutateWithUndo(message, fn, onUndo) {
+  hideUndoToast();
+  const collections = await getCollections();
+  const snapshot = structuredClone(collections);
+  const touched = fn(collections);
+  const ts = now();
+  for (const col of [].concat(touched || [])) {
+    if (col) col.updatedAt = ts;
+  }
+  await setCollections(collections);
+  await renderAll();
+  showUndoToast(message, snapshot, onUndo);
+}
+
+let undoTimer = null;
+
+function showUndoToast(message, snapshot, onUndo) {
+  const toast = document.getElementById("undo-toast");
+  toast.querySelector(".msg").textContent = message;
+  toast.classList.add("show");
+  clearTimeout(undoTimer);
+  document.getElementById("undo-btn").onclick = async () => {
+    hideUndoToast();
+    await setCollections(snapshot);
+    if (onUndo) onUndo();
+    renderAll();
+  };
+  undoTimer = setTimeout(hideUndoToast, 6000);
+}
+
+function hideUndoToast() {
+  clearTimeout(undoTimer);
+  undoTimer = null;
+  const toast = document.getElementById("undo-toast");
+  toast.classList.remove("show");
+  document.getElementById("undo-btn").onclick = null;
 }
 
 function findCollection(collections, id) {
@@ -310,7 +351,7 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
   del.title = "Remove link";
   del.textContent = "🗑";
   del.addEventListener("click", () => {
-    mutateCollections((collections) => {
+    mutateWithUndo(`Removed "${tab.title || hostnameOf(tab.url)}"`, (collections) => {
       const c = findCollection(collections, col.id);
       const source = folder ? c.folders.find((f) => f.id === folder.id).tabs : c.tabs;
       const idx = source.findIndex((t) => t.id === tab.id);
@@ -420,8 +461,8 @@ async function renderCollectionView() {
     dedupeBtn.textContent = `🧹 Remove ${dupIds.size} duplicate${dupIds.size === 1 ? "" : "s"}`;
     dedupeBtn.title = "Keep the first occurrence of each URL and remove the rest";
     dedupeBtn.addEventListener("click", () => {
-      if (!confirm(`Remove ${dupIds.size} duplicate link${dupIds.size === 1 ? "" : "s"} from "${col.name}"?`)) return;
-      mutateCollections((cs) => {
+      const n = dupIds.size;
+      mutateWithUndo(`Removed ${n} duplicate${n === 1 ? "" : "s"} from "${col.name}"`, (cs) => {
         const c = findCollection(cs, col.id);
         const dups = findDuplicateIds(c);
         c.tabs = c.tabs.filter((t) => !dups.has(t.id));
@@ -448,12 +489,19 @@ async function renderCollectionView() {
   deleteBtn.className = "danger";
   deleteBtn.textContent = "Delete collection";
   deleteBtn.addEventListener("click", () => {
-    if (!confirm(`Delete collection "${col.name}" and all its links?`)) return;
-    mutateCollections((cs) => {
-      const idx = cs.findIndex((c) => c.id === col.id);
-      if (idx !== -1) cs.splice(idx, 1);
-      state.selectedCollectionId = null;
-    });
+    const prevSelected = col.id;
+    mutateWithUndo(
+      `Deleted collection "${col.name}"`,
+      (cs) => {
+        const idx = cs.findIndex((c) => c.id === col.id);
+        if (idx !== -1) cs.splice(idx, 1);
+        state.selectedCollectionId = null;
+      },
+      () => {
+        state.view = "collection";
+        state.selectedCollectionId = prevSelected;
+      }
+    );
   });
 
   toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, newWindowBtn);
@@ -520,11 +568,8 @@ async function renderCollectionView() {
     delFolder.title = "Delete folder (links move out of the folder)";
     delFolder.textContent = "🗑";
     delFolder.addEventListener("click", () => {
-      if (folder.tabs.length &&
-          !confirm(`Delete folder "${folder.name}"? Its ${folder.tabs.length} links move to the collection root.`)) {
-        return;
-      }
-      mutateCollections((cs) => {
+      const note = folder.tabs.length ? ` (${folder.tabs.length} links moved out)` : "";
+      mutateWithUndo(`Deleted folder "${folder.name}"${note}`, (cs) => {
         const c = findCollection(cs, col.id);
         const idx = c.folders.findIndex((f) => f.id === folder.id);
         if (idx !== -1) {
@@ -667,6 +712,131 @@ async function renderSearchView() {
 // ---------------------------------------------------------------------------
 // Stats view
 
+const CHART_SERIES = [
+  { key: "opened", label: "Opened", color: "var(--accent)" },
+  { key: "closed", label: "Closed", color: "var(--muted-2)" },
+  { key: "autoClosed", label: "Auto-closed", color: "var(--danger)" },
+];
+
+// Grouped-bar SVG chart of the last 14 days (gaps filled with zeros).
+function renderDailyChart(stats) {
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const counts = stats.byDay[key] || {};
+    days.push({
+      key,
+      label: key.slice(5),
+      opened: counts.opened || 0,
+      closed: counts.closed || 0,
+      autoClosed: counts.autoClosed || 0,
+    });
+  }
+  const max = Math.max(1, ...days.flatMap((d) => [d.opened, d.closed, d.autoClosed]));
+
+  const W = 980, H = 240, padL = 40, padR = 10, padT = 14, padB = 28;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const groupW = plotW / days.length;
+  const barW = Math.min(14, (groupW - 10) / CHART_SERIES.length);
+
+  let svg = "";
+  for (let g = 0; g <= 4; g++) {
+    const v = Math.round((max * g) / 4);
+    const y = padT + plotH - (plotH * g) / 4;
+    svg += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" class="chart-grid"/>`;
+    svg += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" class="chart-label">${v}</text>`;
+  }
+  days.forEach((day, i) => {
+    const groupX = padL + i * groupW;
+    CHART_SERIES.forEach((s, j) => {
+      const v = day[s.key];
+      const h = (v / max) * plotH;
+      const x = groupX + (groupW - barW * CHART_SERIES.length) / 2 + j * barW;
+      svg += `<rect x="${x.toFixed(1)}" y="${(padT + plotH - h).toFixed(1)}" ` +
+        `width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${s.color}" rx="1">` +
+        `<title>${day.key} — ${s.label}: ${v}</title></rect>`;
+    });
+    svg += `<text x="${(groupX + groupW / 2).toFixed(1)}" y="${H - 8}" ` +
+      `text-anchor="middle" class="chart-label">${day.label}</text>`;
+  });
+
+  const card = document.createElement("div");
+  card.className = "card chart-card";
+  card.innerHTML =
+    `<div class="chart-legend">` +
+    CHART_SERIES.map(
+      (s) => `<span><span class="swatch" style="background:${s.color}"></span>${s.label}</span>`
+    ).join("") +
+    `</div>` +
+    `<svg class="daily-chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  return card;
+}
+
+// Top hostnames by auto-close count. Prefers the uncapped per-site counters;
+// falls back to tallying the Auto Closed collection for pre-existing data.
+async function topAutoClosedSites(stats) {
+  let counts = stats.autoClosedSites || {};
+  if (!Object.keys(counts).length) {
+    const collections = await getCollections();
+    const auto = collections.find((c) => c.id === AUTO_CLOSED_ID);
+    counts = {};
+    if (auto) {
+      for (const t of [...auto.tabs, ...auto.folders.flatMap((f) => f.tabs)]) {
+        const host = hostnameOf(t.url);
+        if (host) counts[host] = (counts[host] || 0) + 1;
+      }
+    }
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
+
+function renderTopSites(ranking) {
+  const card = document.createElement("div");
+  card.className = "card";
+  const head = document.createElement("div");
+  head.className = "card-header";
+  head.textContent = "Most auto-closed sites";
+  card.appendChild(head);
+
+  const maxCount = ranking[0][1];
+  ranking.forEach(([host, count], i) => {
+    const row = document.createElement("div");
+    row.className = "site-rank-row";
+
+    const rank = document.createElement("span");
+    rank.className = "rank-num";
+    rank.textContent = String(i + 1);
+
+    const img = document.createElement("img");
+    img.src = faviconUrl("https://" + host, 16);
+    img.alt = "";
+
+    const name = document.createElement("span");
+    name.className = "rank-host";
+    name.textContent = host;
+    name.title = host;
+
+    const barWrap = document.createElement("span");
+    barWrap.className = "rank-bar-wrap";
+    const bar = document.createElement("span");
+    bar.className = "rank-bar";
+    bar.style.width = ((count / maxCount) * 100).toFixed(1) + "%";
+    barWrap.appendChild(bar);
+
+    const num = document.createElement("span");
+    num.className = "rank-count";
+    num.textContent = count;
+
+    row.append(rank, img, name, barWrap, num);
+    card.appendChild(row);
+  });
+  return card;
+}
+
 async function renderStatsView() {
   const stats = await getStats();
   const today = stats.byDay[todayKey()] || { opened: 0, closed: 0, autoClosed: 0 };
@@ -694,6 +864,11 @@ async function renderStatsView() {
     grid.appendChild(el);
   }
   $content.appendChild(grid);
+
+  $content.appendChild(renderDailyChart(stats));
+
+  const ranking = await topAutoClosedSites(stats);
+  if (ranking.length) $content.appendChild(renderTopSites(ranking));
 
   // Last 14 days table
   const days = Object.keys(stats.byDay).sort().reverse().slice(0, 14);
@@ -730,10 +905,7 @@ async function renderSettingsView() {
   card.className = "card";
   card.style.padding = "6px 18px";
 
-  const save = async (patch) => {
-    const current = await getSettings();
-    await chrome.storage.local.set({ settings: { ...current, ...patch } });
-  };
+  const save = saveSettings;
 
   const row1 = document.createElement("div");
   row1.className = "settings-row";
@@ -851,10 +1023,7 @@ async function renderAutoCloseScope(settings) {
     radio.value = mode.value;
     radio.checked = settings.autoCloseScope === mode.value;
     radio.addEventListener("change", async () => {
-      const current = await getSettings();
-      await chrome.storage.local.set({
-        settings: { ...current, autoCloseScope: mode.value },
-      });
+      await saveSettings({ autoCloseScope: mode.value });
       renderAll();
     });
     row.append(label, radio);
@@ -1167,8 +1336,12 @@ $searchInput.addEventListener("input", () => {
 
 // Live-refresh when the background worker saves auto-closed tabs.
 chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.settings) {
+    applyTheme();
+    if (state.view === "settings") renderAll();
+    return;
+  }
   if (area !== "local") return;
-  if (changes.settings) applyTheme();
   if ((changes.lockedSites || changes.autoCloseList) && state.view === "settings") renderAll();
   if (changes.collections || changes.stats) renderAll();
 });

@@ -85,14 +85,21 @@ async function setCollections(collections) {
   await chrome.storage.local.set({ collections });
 }
 
+// Settings live in chrome.storage.sync so preferences follow the user
+// across machines (collections/stats stay local — they're too big to sync).
 async function getSettings() {
-  const { settings = {} } = await chrome.storage.local.get("settings");
+  const { settings = {} } = await chrome.storage.sync.get("settings");
   return { ...DEFAULT_SETTINGS, ...settings };
+}
+
+async function saveSettings(patch) {
+  const current = await getSettings();
+  await chrome.storage.sync.set({ settings: { ...current, ...patch } });
 }
 
 async function getStats() {
   const { stats } = await chrome.storage.local.get("stats");
-  return stats || { opened: 0, closed: 0, autoClosed: 0, byDay: {} };
+  return stats || { opened: 0, closed: 0, autoClosed: 0, byDay: {}, autoClosedSites: {} };
 }
 
 async function getLockedSites() {
