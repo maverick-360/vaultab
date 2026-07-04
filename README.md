@@ -28,9 +28,12 @@ inactive-tab auto-closer.
 9. **Themes** — Light, Dark, and Ocean, selectable in Settings; applies to
    both the popup and the dashboard.
 10. **Import / export** — export all collections to a JSON file and import
-    them back (imported collections are appended, ids regenerated). A sample
-    file, [example-import.json](example-import.json), can be downloaded from
-    Settings; it shows the accepted format.
+    them back (imported collections are appended, ids regenerated). The
+    accepted format is documented below under "Import format".
+11. **Hide / unhide** — collections and folders can be hidden (🙈). Hidden
+    collections move to a collapsible "Hidden" section in the sidebar;
+    hidden folders disappear behind a "Show hidden folders" toggle in the
+    collection view. Hidden items are excluded from search results.
 
 ## Install (developer mode)
 
@@ -74,8 +77,21 @@ Import accepts either a full export (`{ "collections": [...] }`) or a bare
 array of collections. Only `url` is required per link; `title`, folder
 names, and timestamps are optional and filled with sensible defaults. If
 the file has a top-level `stats` object (`opened`, `closed`, `autoClosed`,
-`byDay`), its counters are merged additively into your existing stats. See
-[example-import.json](example-import.json).
+`byDay`), its counters are merged additively into your existing stats.
+
+```json
+{
+  "collections": [
+    {
+      "name": "Research",
+      "folders": [
+        { "name": "Docs", "tabs": [{ "title": "MDN", "url": "https://developer.mozilla.org/" }] }
+      ],
+      "tabs": [{ "title": "Wikipedia", "url": "https://www.wikipedia.org/" }]
+    }
+  ]
+}
+```
 
 ## Migrating from Tab Wrangler
 

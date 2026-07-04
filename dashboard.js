@@ -4,6 +4,8 @@ let state = {
   view: "collection", // "collection" | "stats" | "settings" | "search"
   selectedCollectionId: null,
   query: "",
+  showHiddenCollections: false,
+  showHiddenFolders: false,
 };
 
 const $content = document.getElementById("content");
@@ -39,12 +41,13 @@ async function renderSidebar() {
   const collections = await getCollections();
   $collectionList.textContent = "";
 
-  for (const col of collections) {
+  const addItem = (col, dimmed) => {
     const li = document.createElement("li");
     const btn = document.createElement("button");
     if (state.view === "collection" && state.selectedCollectionId === col.id) {
       btn.classList.add("active");
     }
+    if (dimmed) btn.classList.add("hidden-dim");
     btn.textContent = col.name;
     const count = document.createElement("span");
     count.className = "count";
@@ -59,6 +62,28 @@ async function renderSidebar() {
     });
     li.appendChild(btn);
     $collectionList.appendChild(li);
+  };
+
+  const hiddenCols = collections.filter((c) => c.hidden);
+  for (const col of collections) {
+    if (!col.hidden) addItem(col, false);
+  }
+
+  if (hiddenCols.length) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "hidden-toggle";
+    btn.textContent =
+      (state.showHiddenCollections ? "▾" : "▸") + ` Hidden (${hiddenCols.length})`;
+    btn.addEventListener("click", () => {
+      state.showHiddenCollections = !state.showHiddenCollections;
+      renderSidebar();
+    });
+    li.appendChild(btn);
+    $collectionList.appendChild(li);
+    if (state.showHiddenCollections) {
+      for (const col of hiddenCols) addItem(col, true);
+    }
   }
 
   document.querySelectorAll(".nav-btn").forEach((b) => {
@@ -126,7 +151,7 @@ function renderTabRow(col, folder, tab) {
     ...(!folder ? [] : [{ value: "__root__", label: "— no folder —" }]),
     ...col.folders
       .filter((f) => !folder || f.id !== folder.id)
-      .map((f) => ({ value: f.id, label: "📁 " + f.name })),
+      .map((f) => ({ value: f.id, label: "📁 " + f.name + (f.hidden ? " (hidden)" : "") })),
   ];
   for (const o of options) {
     const opt = document.createElement("option");
@@ -242,6 +267,19 @@ async function renderCollectionView() {
     for (const url of urls) chrome.tabs.create({ url, active: false });
   });
 
+  const hideBtn = document.createElement("button");
+  hideBtn.textContent = col.hidden ? "👁 Unhide" : "🙈 Hide";
+  hideBtn.title = col.hidden
+    ? "Show this collection in the sidebar and search results"
+    : "Hide this collection from the sidebar and search results";
+  hideBtn.addEventListener("click", () => {
+    mutateCollections((cs) => {
+      const c = findCollection(cs, col.id);
+      c.hidden = !c.hidden;
+      return c;
+    });
+  });
+
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "danger";
   deleteBtn.textContent = "Delete collection";
@@ -254,14 +292,17 @@ async function renderCollectionView() {
     });
   });
 
-  toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, deleteBtn);
+  toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, hideBtn, deleteBtn);
   header.append(left, toolbar);
   $content.appendChild(header);
 
   // Folders
+  const hiddenFolderCount = col.folders.filter((f) => f.hidden).length;
   for (const folder of col.folders) {
+    if (folder.hidden && !state.showHiddenFolders) continue;
     const card = document.createElement("div");
     card.className = "card";
+    if (folder.hidden) card.classList.add("hidden-dim");
 
     const head = document.createElement("div");
     head.className = "card-header";
@@ -291,6 +332,22 @@ async function renderCollectionView() {
       for (const t of folder.tabs) chrome.tabs.create({ url: t.url, active: false });
     });
 
+    const hideFolder = document.createElement("button");
+    hideFolder.className = "ghost";
+    hideFolder.textContent = folder.hidden ? "👁" : "🙈";
+    hideFolder.title = folder.hidden
+      ? "Unhide this folder"
+      : "Hide this folder from the collection view and search results";
+    hideFolder.addEventListener("click", () => {
+      mutateCollections((cs) => {
+        const c = findCollection(cs, col.id);
+        const f = c.folders.find((f) => f.id === folder.id);
+        f.hidden = !f.hidden;
+        f.updatedAt = now();
+        return c;
+      });
+    });
+
     const delFolder = document.createElement("button");
     delFolder.className = "ghost danger";
     delFolder.title = "Delete folder (links move out of the folder)";
@@ -311,7 +368,7 @@ async function renderCollectionView() {
       });
     });
 
-    head.append(spacer, openAll, delFolder);
+    head.append(spacer, openAll, hideFolder, delFolder);
     card.appendChild(head);
 
     if (!folder.tabs.length) {
@@ -322,6 +379,19 @@ async function renderCollectionView() {
     }
     for (const tab of folder.tabs) card.appendChild(renderTabRow(col, folder, tab));
     $content.appendChild(card);
+  }
+
+  if (hiddenFolderCount) {
+    const toggle = document.createElement("button");
+    toggle.className = "hidden-folders-toggle";
+    toggle.textContent = state.showHiddenFolders
+      ? `Hide ${hiddenFolderCount} hidden folder${hiddenFolderCount === 1 ? "" : "s"}`
+      : `Show ${hiddenFolderCount} hidden folder${hiddenFolderCount === 1 ? "" : "s"}`;
+    toggle.addEventListener("click", () => {
+      state.showHiddenFolders = !state.showHiddenFolders;
+      renderAll();
+    });
+    $content.appendChild(toggle);
   }
 
   // Ungrouped tabs
@@ -361,6 +431,7 @@ async function renderSearchView() {
 
   const results = []; // { col, folder|null, tab, reason }
   for (const col of collections) {
+    if (col.hidden) continue;
     const colMatch = col.name.toLowerCase().includes(q);
     const scan = (folder, tabs) => {
       const folderMatch = folder && folder.name.toLowerCase().includes(q);
@@ -373,7 +444,10 @@ async function renderSearchView() {
       }
     };
     scan(null, col.tabs);
-    for (const folder of col.folders) scan(folder, folder.tabs);
+    for (const folder of col.folders) {
+      if (folder.hidden) continue;
+      scan(folder, folder.tabs);
+    }
   }
 
   const h2 = document.createElement("h2");
@@ -585,12 +659,14 @@ function sanitizeImported(data) {
     name: String((c && c.name) || "Imported collection"),
     createdAt: Number(c && c.createdAt) || ts,
     updatedAt: Number(c && c.updatedAt) || ts,
+    hidden: !!(c && c.hidden),
     folders: Array.isArray(c && c.folders)
       ? c.folders.map((f) => ({
           id: uid(),
           name: String((f && f.name) || "Folder"),
           createdAt: Number(f && f.createdAt) || ts,
           updatedAt: Number(f && f.updatedAt) || ts,
+          hidden: !!(f && f.hidden),
           tabs: sanitizeImportedTabs(f && f.tabs),
         }))
       : [],
@@ -697,19 +773,7 @@ function renderImportExport() {
   });
   rowImport.append(importBtn, fileInput);
 
-  const rowExample = document.createElement("div");
-  rowExample.className = "settings-row";
-  rowExample.innerHTML = `<label>Example file<div class="meta">Download a sample JSON showing the import format.</div></label>`;
-  const exampleBtn = document.createElement("button");
-  exampleBtn.textContent = "📄 Download example";
-  exampleBtn.addEventListener("click", async () => {
-    const res = await fetch(chrome.runtime.getURL("example-import.json"));
-    downloadJson("tabkeeper-example-import.json", await res.json());
-    setStatus("Example file downloaded — edit it and import it back.");
-  });
-  rowExample.appendChild(exampleBtn);
-
-  card.append(rowExport, rowImport, rowExample, status);
+  card.append(rowExport, rowImport, status);
   $content.appendChild(card);
 }
 

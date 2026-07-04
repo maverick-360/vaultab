@@ -307,6 +307,29 @@ table.stats-table th { background: var(--card-head); font-size: 12px; color: var
 .io-status { color: var(--muted); font-size: 12px; min-height: 16px; margin-top: 8px; }
 .io-status.error { color: var(--danger); }
 
+/* ---------- Hidden collections / folders ---------- */
+
+.hidden-dim { opacity: 0.55; }
+
+#collection-list .hidden-toggle {
+  color: var(--sidebar-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.hidden-folders-toggle {
+  display: block;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  padding: 2px 4px;
+  margin: -4px 0 14px;
+}
+
+.hidden-folders-toggle:hover { background: none; text-decoration: underline; }
+
 /* ---------- Search results ---------- */
 
 .result-context { color: var(--muted); font-size: 12px; }
