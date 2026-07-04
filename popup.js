@@ -1,8 +1,9 @@
 async function render() {
-  const [tabs, lockedTabs, settings] = await Promise.all([
+  const [tabs, lockedTabs, settings, lockedSites] = await Promise.all([
     chrome.tabs.query({ currentWindow: true }),
     getLockedTabs(),
     getSettings(),
+    getLockedSites(),
   ]);
 
   const list = document.getElementById("tab-list");
@@ -80,6 +81,27 @@ async function render() {
       sel.focus();
     });
 
+    const pinBtn = document.createElement("button");
+    pinBtn.className = "pin-btn";
+    const siteLocked = isSiteLocked(tab.url || "", lockedSites);
+    pinBtn.textContent = "📌";
+    pinBtn.classList.toggle("active", siteLocked);
+    pinBtn.title = siteLocked
+      ? "Site is always locked — click to remove"
+      : "Always lock this site (survives browser restarts)";
+    if (!/^https?:/.test(tab.url || "")) pinBtn.style.visibility = "hidden";
+    pinBtn.addEventListener("click", async () => {
+      const sites = await getLockedSites();
+      if (isSiteLocked(tab.url, sites)) {
+        await setLockedSites(sites.filter((p) => !isSiteLocked(tab.url, [p])));
+      } else {
+        const pattern = normalizeSitePattern(tab.url);
+        if (pattern && !sites.includes(pattern)) sites.push(pattern);
+        await setLockedSites(sites);
+      }
+      render();
+    });
+
     const lockBtn = document.createElement("button");
     lockBtn.className = "lock-btn";
     lockBtn.textContent = locked ? "🔒" : "🔓";
@@ -92,9 +114,9 @@ async function render() {
       render();
     });
 
-    li.append(img, title, addBtn, lockBtn);
+    li.append(img, title, addBtn, pinBtn, lockBtn);
     li.addEventListener("click", (e) => {
-      if (e.target === lockBtn || e.target === addBtn) return;
+      if (e.target === lockBtn || e.target === addBtn || e.target === pinBtn) return;
       chrome.tabs.update(tab.id, { active: true });
     });
     list.appendChild(li);

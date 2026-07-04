@@ -93,6 +93,48 @@ async function getStats() {
   return stats || { opened: 0, closed: 0, autoClosed: 0, byDay: {} };
 }
 
+async function getLockedSites() {
+  const { lockedSites = [] } = await chrome.storage.local.get("lockedSites");
+  return lockedSites;
+}
+
+async function setLockedSites(lockedSites) {
+  await chrome.storage.local.set({ lockedSites });
+}
+
+// Turns user input (hostname or full URL) into a stored site pattern.
+function normalizeSitePattern(input) {
+  let p = String(input || "").trim().toLowerCase();
+  if (!p) return "";
+  if (p.includes("://")) {
+    try {
+      p = new URL(p).hostname;
+    } catch {
+      return "";
+    }
+  }
+  return p.replace(/^www\./, "");
+}
+
+// A pattern with "/" matches anywhere in the URL; otherwise it matches the
+// hostname exactly or any of its subdomains.
+function isSiteLocked(url, patterns) {
+  if (!patterns || !patterns.length) return false;
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const bare = host.replace(/^www\./, "");
+  const lower = String(url).toLowerCase();
+  return patterns.some((p) =>
+    p.includes("/")
+      ? lower.includes(p)
+      : bare === p || bare.endsWith("." + p) || host === p
+  );
+}
+
 async function getLockedTabs() {
   const { lockedTabs = {} } = await chrome.storage.session.get("lockedTabs");
   return lockedTabs;

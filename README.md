@@ -22,7 +22,10 @@ inactive-tab auto-closer.
    configurable minimum tab count (default 5).
 6. **Tab lock** — in the popup, click 🔓 next to any tab to lock it (🔒);
    locked tabs are exempt from auto-close. Locks last for the browser
-   session (tab ids reset on restart).
+   session (tab ids reset on restart). For permanent protection, click 📌
+   to always lock the tab's site: locked sites are stored persistently,
+   match subdomains too, and can be managed in **Settings → Locked sites**
+   (patterns containing "/" match anywhere in the URL).
 7. **Stats** — counts of opened, closed, and auto-closed tabs, all-time and
    per-day (last 14 days shown).
 8. **Single-tab save** — the ➕ button next to any tab in the popup saves
@@ -70,6 +73,7 @@ collections: [{ id, name, createdAt, updatedAt,
                 tabs: [{ id, title, url, addedAt }] }]
 settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
                autoClosedCap, theme }
+lockedSites: ["mail.google.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
 ```
 

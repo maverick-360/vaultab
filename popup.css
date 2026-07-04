@@ -142,14 +142,20 @@ select {
 
 #tab-list select { flex: 1; min-width: 0; }
 
-.lock-btn, .add-btn {
+.lock-btn, .add-btn, .pin-btn {
   border: none;
   background: none;
   font-size: 15px;
   padding: 2px 4px;
 }
 
-.lock-btn:hover, .add-btn:hover { background: var(--hover-strong); border-radius: 4px; }
+.lock-btn:hover, .add-btn:hover, .pin-btn:hover {
+  background: var(--hover-strong);
+  border-radius: 4px;
+}
+
+.pin-btn { opacity: 0.35; }
+.pin-btn.active { opacity: 1; }
 
 footer {
   padding: 8px 12px;

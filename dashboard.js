@@ -727,7 +727,73 @@ async function renderSettingsView() {
   card.append(row1, row2, row3, row4, row5);
   $content.appendChild(card);
 
+  await renderLockedSites();
   renderImportExport();
+}
+
+// ---------------------------------------------------------------------------
+// Locked sites (never auto-closed; persist across browser restarts)
+
+async function renderLockedSites() {
+  const sites = await getLockedSites();
+
+  const title = document.createElement("h3");
+  title.className = "section-title";
+  title.textContent = "Locked sites";
+  $content.appendChild(title);
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.padding = "6px 18px";
+
+  const intro = document.createElement("div");
+  intro.className = "settings-row";
+  intro.innerHTML = `<label>Tabs on these sites are never auto-closed<div class="meta">A bare hostname (e.g. mail.google.com) also matches its subdomains; a pattern containing "/" matches anywhere in the URL. You can also pin sites with 📌 in the popup.</div></label>`;
+  card.appendChild(intro);
+
+  for (const site of sites) {
+    const row = document.createElement("div");
+    row.className = "settings-row";
+    const label = document.createElement("label");
+    label.textContent = "🔒 " + site;
+    const remove = document.createElement("button");
+    remove.className = "ghost danger";
+    remove.textContent = "🗑";
+    remove.title = "Remove — tabs on this site become auto-closable again";
+    remove.addEventListener("click", async () => {
+      await setLockedSites((await getLockedSites()).filter((s) => s !== site));
+      renderAll();
+    });
+    row.append(label, remove);
+    card.appendChild(row);
+  }
+
+  const addRow = document.createElement("div");
+  addRow.className = "settings-row";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "e.g. mail.google.com";
+  input.style.flex = "1";
+  const addBtn = document.createElement("button");
+  addBtn.textContent = "＋ Add site";
+  const add = async () => {
+    const pattern = normalizeSitePattern(input.value);
+    if (!pattern) return;
+    const current = await getLockedSites();
+    if (!current.includes(pattern)) {
+      current.push(pattern);
+      await setLockedSites(current);
+    }
+    renderAll();
+  };
+  addBtn.addEventListener("click", add);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") add();
+  });
+  addRow.append(input, addBtn);
+  card.appendChild(addRow);
+
+  $content.appendChild(card);
 }
 
 // ---------------------------------------------------------------------------
@@ -924,6 +990,7 @@ $searchInput.addEventListener("input", () => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.settings) applyTheme();
+  if (changes.lockedSites && state.view === "settings") renderAll();
   if (changes.collections || changes.stats) renderAll();
 });
 
