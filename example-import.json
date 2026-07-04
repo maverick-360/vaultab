@@ -1,0 +1,39 @@
+{
+  "app": "TabKeeper",
+  "version": 1,
+  "exportedAt": "2026-07-04T12:00:00.000Z",
+  "collections": [
+    {
+      "name": "Example: Research",
+      "createdAt": 1751630400000,
+      "updatedAt": 1751630400000,
+      "folders": [
+        {
+          "name": "Docs",
+          "tabs": [
+            { "title": "MDN Web Docs", "url": "https://developer.mozilla.org/" },
+            { "title": "Chrome Extensions", "url": "https://developer.chrome.com/docs/extensions" }
+          ]
+        },
+        {
+          "name": "Tools",
+          "tabs": [
+            { "title": "Can I use", "url": "https://caniuse.com/" }
+          ]
+        }
+      ],
+      "tabs": [
+        { "title": "Wikipedia", "url": "https://www.wikipedia.org/" },
+        { "title": "Hacker News", "url": "https://news.ycombinator.com/" }
+      ]
+    },
+    {
+      "name": "Example: Reading list",
+      "folders": [],
+      "tabs": [
+        { "title": "The Verge", "url": "https://www.theverge.com/" },
+        { "title": "Ars Technica", "url": "https://arstechnica.com/" }
+      ]
+    }
+  ]
+}

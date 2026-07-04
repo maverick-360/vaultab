@@ -23,6 +23,14 @@ inactive-tab auto-closer.
    session (tab ids reset on restart).
 7. **Stats** — counts of opened, closed, and auto-closed tabs, all-time and
    per-day (last 14 days shown).
+8. **Single-tab save** — the ➕ button next to any tab in the popup saves
+   just that tab to an existing collection or a brand-new one.
+9. **Themes** — Light, Dark, and Ocean, selectable in Settings; applies to
+   both the popup and the dashboard.
+10. **Import / export** — export all collections to a JSON file and import
+    them back (imported collections are appended, ids regenerated). A sample
+    file, [example-import.json](example-import.json), can be downloaded from
+    Settings; it shows the accepted format.
 
 ## Install (developer mode)
 
@@ -55,9 +63,17 @@ Stored in `chrome.storage.local`:
 collections: [{ id, name, createdAt, updatedAt,
                 folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
                 tabs: [{ id, title, url, addedAt }] }]
-settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow, autoClosedCap }
+settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
+               autoClosedCap, theme }
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
 ```
+
+## Import format
+
+Import accepts either a full export (`{ "collections": [...] }`) or a bare
+array of collections. Only `url` is required per link; `title`, folder
+names, and timestamps are optional and filled with sensible defaults. See
+[example-import.json](example-import.json).
 
 Per-browser-session state (`chrome.storage.session`): `tabActivity`
 (last-used timestamps) and `lockedTabs`.

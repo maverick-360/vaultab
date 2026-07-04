@@ -7,7 +7,14 @@ const DEFAULT_SETTINGS = {
   autoCloseMinutes: 20,
   minTabsPerWindow: 5,
   autoClosedCap: 200,
+  theme: "light",
 };
+
+const THEMES = [
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+  { id: "ocean", label: "Ocean" },
+];
 
 function uid() {
   return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -97,6 +104,28 @@ async function setLockedTabs(lockedTabs) {
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+async function applyTheme() {
+  const { theme } = await getSettings();
+  document.body.dataset.theme = theme || "light";
+}
+
+// Adds a single browser tab to a collection ("__new__" creates one first).
+async function addTabToCollection(tab, collectionId, newName) {
+  const collections = await getCollections();
+  let col;
+  if (collectionId === "__new__") {
+    col = makeCollection((newName || "").trim() || "New collection");
+    collections.push(col);
+  } else {
+    col = collections.find((c) => c.id === collectionId);
+  }
+  if (!col) return null;
+  col.tabs.push(makeTabEntry(tab));
+  col.updatedAt = now();
+  await setCollections(collections);
+  return col;
 }
 
 function escapeHtml(s) {

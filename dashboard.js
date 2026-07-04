@@ -505,7 +505,6 @@ async function renderSettingsView() {
 
   const row3 = document.createElement("div");
   row3.className = "settings-row";
-  row3.style.borderBottom = "none";
   row3.innerHTML = `<label for="s-min-tabs">Never shrink a window below (tabs)</label>`;
   const minTabs = document.createElement("input");
   minTabs.type = "number";
@@ -517,7 +516,173 @@ async function renderSettingsView() {
   );
   row3.appendChild(minTabs);
 
-  card.append(row1, row2, row3);
+  const row4 = document.createElement("div");
+  row4.className = "settings-row";
+  row4.innerHTML = `<label for="s-cap">Keep at most this many links in "Auto Closed"</label>`;
+  const cap = document.createElement("input");
+  cap.type = "number";
+  cap.id = "s-cap";
+  cap.min = "10";
+  cap.value = settings.autoClosedCap;
+  cap.addEventListener("change", () =>
+    save({ autoClosedCap: Math.max(10, Number(cap.value) || 200) })
+  );
+  row4.appendChild(cap);
+
+  const row5 = document.createElement("div");
+  row5.className = "settings-row";
+  row5.innerHTML = `<label for="s-theme">Theme</label>`;
+  const theme = document.createElement("select");
+  theme.id = "s-theme";
+  for (const t of THEMES) {
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.label;
+    opt.selected = settings.theme === t.id;
+    theme.appendChild(opt);
+  }
+  theme.addEventListener("change", async () => {
+    await save({ theme: theme.value });
+    await applyTheme();
+  });
+  row5.appendChild(theme);
+
+  card.append(row1, row2, row3, row4, row5);
+  $content.appendChild(card);
+
+  renderImportExport();
+}
+
+// ---------------------------------------------------------------------------
+// Import / export
+
+function sanitizeImportedTabs(tabs) {
+  if (!Array.isArray(tabs)) return [];
+  return tabs
+    .filter((t) => t && typeof t.url === "string" && t.url)
+    .map((t) => ({
+      id: uid(),
+      title: String(t.title || hostnameOf(t.url)),
+      url: t.url,
+      addedAt: Number(t.addedAt) || now(),
+    }));
+}
+
+// Accepts a TabKeeper export ({ collections: [...] }) or a bare array of
+// collections. Ids are regenerated to avoid collisions with existing data.
+function sanitizeImported(data) {
+  const list = Array.isArray(data)
+    ? data
+    : data && Array.isArray(data.collections)
+    ? data.collections
+    : null;
+  if (!list) {
+    throw new Error('Expected { "collections": [...] } or an array of collections.');
+  }
+  const ts = now();
+  return list.map((c) => ({
+    id: uid(),
+    name: String((c && c.name) || "Imported collection"),
+    createdAt: Number(c && c.createdAt) || ts,
+    updatedAt: Number(c && c.updatedAt) || ts,
+    folders: Array.isArray(c && c.folders)
+      ? c.folders.map((f) => ({
+          id: uid(),
+          name: String((f && f.name) || "Folder"),
+          createdAt: Number(f && f.createdAt) || ts,
+          updatedAt: Number(f && f.updatedAt) || ts,
+          tabs: sanitizeImportedTabs(f && f.tabs),
+        }))
+      : [],
+    tabs: sanitizeImportedTabs(c && c.tabs),
+  }));
+}
+
+function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderImportExport() {
+  const title = document.createElement("h3");
+  title.className = "section-title";
+  title.textContent = "Import / Export";
+  $content.appendChild(title);
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.padding = "6px 18px";
+
+  const status = document.createElement("div");
+  status.className = "io-status";
+  const setStatus = (msg, isError) => {
+    status.textContent = msg;
+    status.classList.toggle("error", !!isError);
+  };
+
+  const rowExport = document.createElement("div");
+  rowExport.className = "settings-row";
+  rowExport.innerHTML = `<label>Export all collections as JSON</label>`;
+  const exportBtn = document.createElement("button");
+  exportBtn.textContent = "⬇ Export";
+  exportBtn.addEventListener("click", async () => {
+    const collections = await getCollections();
+    downloadJson(`tabkeeper-export-${todayKey()}.json`, {
+      app: "TabKeeper",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      collections,
+    });
+    setStatus(`Exported ${collections.length} collections.`);
+  });
+  rowExport.appendChild(exportBtn);
+
+  const rowImport = document.createElement("div");
+  rowImport.className = "settings-row";
+  rowImport.innerHTML = `<label>Import collections from a JSON file<div class="meta">Imported collections are added alongside existing ones.</div></label>`;
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".json,application/json";
+  fileInput.style.display = "none";
+  const importBtn = document.createElement("button");
+  importBtn.textContent = "⬆ Import…";
+  importBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    fileInput.value = "";
+    if (!file) return;
+    try {
+      const imported = sanitizeImported(JSON.parse(await file.text()));
+      const collections = await getCollections();
+      collections.push(...imported);
+      await setCollections(collections);
+      const links = imported.reduce((n, c) => n + collectionTabCount(c), 0);
+      setStatus(`Imported ${imported.length} collections (${links} links) from ${file.name}.`);
+      renderSidebar();
+    } catch (err) {
+      setStatus(`Import failed: ${err.message}`, true);
+    }
+  });
+  rowImport.append(importBtn, fileInput);
+
+  const rowExample = document.createElement("div");
+  rowExample.className = "settings-row";
+  rowExample.innerHTML = `<label>Example file<div class="meta">Download a sample JSON showing the import format.</div></label>`;
+  const exampleBtn = document.createElement("button");
+  exampleBtn.textContent = "📄 Download example";
+  exampleBtn.addEventListener("click", async () => {
+    const res = await fetch(chrome.runtime.getURL("example-import.json"));
+    downloadJson("tabkeeper-example-import.json", await res.json());
+    setStatus("Example file downloaded — edit it and import it back.");
+  });
+  rowExample.appendChild(exampleBtn);
+
+  card.append(rowExport, rowImport, rowExample, status);
   $content.appendChild(card);
 }
 
@@ -563,7 +728,10 @@ $searchInput.addEventListener("input", () => {
 
 // Live-refresh when the background worker saves auto-closed tabs.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes.collections || changes.stats)) renderAll();
+  if (area !== "local") return;
+  if (changes.settings) applyTheme();
+  if (changes.collections || changes.stats) renderAll();
 });
 
+applyTheme();
 renderAll();

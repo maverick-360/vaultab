@@ -22,6 +22,64 @@ async function render() {
     title.textContent = siteName(tab);
     title.title = tab.url || "";
 
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-btn";
+    addBtn.textContent = "➕";
+    addBtn.title = "Save this tab to a collection";
+    addBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (li.querySelector("select")) return;
+      const collections = await getCollections();
+      const sel = document.createElement("select");
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Save to collection…";
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      sel.appendChild(placeholder);
+
+      for (const col of collections) {
+        const opt = document.createElement("option");
+        opt.value = col.id;
+        opt.textContent = col.name;
+        sel.appendChild(opt);
+      }
+      const newOpt = document.createElement("option");
+      newOpt.value = "__new__";
+      newOpt.textContent = "＋ New collection…";
+      sel.appendChild(newOpt);
+
+      const restore = () => {
+        sel.remove();
+        title.style.display = "";
+      };
+      sel.addEventListener("click", (ev) => ev.stopPropagation());
+      sel.addEventListener("blur", () => setTimeout(restore, 100));
+      sel.addEventListener("change", async () => {
+        let choice = sel.value;
+        let newName = null;
+        if (choice === "__new__") {
+          newName = prompt("New collection name:", "New collection");
+          if (newName === null) return restore();
+        }
+        const col = await addTabToCollection(tab, choice, newName);
+        restore();
+        if (col) {
+          addBtn.textContent = "✅";
+          addBtn.title = `Saved to "${col.name}"`;
+          setTimeout(() => {
+            addBtn.textContent = "➕";
+            addBtn.title = "Save this tab to a collection";
+          }, 1500);
+        }
+      });
+
+      title.style.display = "none";
+      li.insertBefore(sel, addBtn);
+      sel.focus();
+    });
+
     const lockBtn = document.createElement("button");
     lockBtn.className = "lock-btn";
     lockBtn.textContent = locked ? "🔒" : "🔓";
@@ -34,9 +92,9 @@ async function render() {
       render();
     });
 
-    li.append(img, title, lockBtn);
+    li.append(img, title, addBtn, lockBtn);
     li.addEventListener("click", (e) => {
-      if (e.target === lockBtn) return;
+      if (e.target === lockBtn || e.target === addBtn) return;
       chrome.tabs.update(tab.id, { active: true });
     });
     list.appendChild(li);
@@ -74,4 +132,5 @@ document.getElementById("save-window").addEventListener("click", async () => {
   setTimeout(() => (btn.textContent = "💾 Save window to collection"), 2000);
 });
 
+applyTheme();
 render();
