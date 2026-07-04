@@ -39,6 +39,16 @@ inactive-tab auto-closer.
     collections move to a collapsible "Hidden" section in the sidebar;
     hidden folders disappear behind a "Show hidden folders" toggle in the
     collection view. Hidden items are excluded from search results.
+12. **Duplicate detection** — repeated URLs within a collection get a "dup"
+    badge and a one-click "Remove duplicates" toolbar button (keeps the
+    first occurrence). The popup offers "Close duplicate tabs" for the
+    current window, keeping the active tab of each group.
+13. **Restore options** — open a collection's links in the current window
+    or a new one; an optional corral-style setting removes links from
+    their collection once opened.
+14. **Auto-close countdown** — the popup shows estimated minutes until
+    each tab auto-closes (∞ for exempt tabs: active, pinned, audible,
+    locked, or on a locked site).
 
 ## Install (developer mode)
 
@@ -72,7 +82,7 @@ collections: [{ id, name, createdAt, updatedAt,
                 folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
                 tabs: [{ id, title, url, addedAt }] }]
 settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
-               autoClosedCap, theme }
+               autoClosedCap, theme, restoreRemoves }
 lockedSites: ["mail.google.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
 ```

@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   minTabsPerWindow: 5,
   autoClosedCap: 200,
   theme: "light",
+  restoreRemoves: false,
 };
 
 const THEMES = [

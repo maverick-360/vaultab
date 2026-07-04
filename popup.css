@@ -104,8 +104,22 @@ select {
   max-width: 200px;
 }
 
-.actions { padding: 10px 12px 4px; }
+.actions {
+  padding: 10px 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .actions button { width: 100%; }
+.actions button.hidden { display: none; }
+
+.countdown {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  min-width: 26px;
+  text-align: right;
+}
 
 .hint {
   padding: 6px 12px;

@@ -1,10 +1,12 @@
 async function render() {
-  const [tabs, lockedTabs, settings, lockedSites] = await Promise.all([
+  const [tabs, lockedTabs, settings, lockedSites, sessionData] = await Promise.all([
     chrome.tabs.query({ currentWindow: true }),
     getLockedTabs(),
     getSettings(),
     getLockedSites(),
+    chrome.storage.session.get("tabActivity"),
   ]);
+  const tabActivity = sessionData.tabActivity || {};
 
   const list = document.getElementById("tab-list");
   list.textContent = "";
@@ -22,6 +24,28 @@ async function render() {
     title.className = "title";
     title.textContent = siteName(tab);
     title.title = tab.url || "";
+
+    const countdown = document.createElement("span");
+    countdown.className = "countdown";
+    const exempt =
+      tab.active ||
+      tab.pinned ||
+      tab.audible ||
+      !!lockedTabs[tab.id] ||
+      isSiteLocked(tab.url || "", lockedSites) ||
+      !/^https?:/.test(tab.url || "");
+    if (settings.autoCloseEnabled) {
+      if (exempt) {
+        countdown.textContent = "∞";
+        countdown.title = "Exempt from auto-close";
+      } else {
+        const last = tabActivity[tab.id] ?? Date.now();
+        const remainMs = settings.autoCloseMinutes * 60000 - (Date.now() - last);
+        const mins = Math.max(0, Math.ceil(remainMs / 60000));
+        countdown.textContent = mins + "m";
+        countdown.title = "Estimated minutes until auto-close";
+      }
+    }
 
     const addBtn = document.createElement("button");
     addBtn.className = "add-btn";
@@ -114,7 +138,7 @@ async function render() {
       render();
     });
 
-    li.append(img, title, addBtn, pinBtn, lockBtn);
+    li.append(img, title, countdown, addBtn, pinBtn, lockBtn);
     li.addEventListener("click", (e) => {
       if (e.target === lockBtn || e.target === addBtn || e.target === pinBtn) return;
       chrome.tabs.update(tab.id, { active: true });
@@ -126,6 +150,29 @@ async function render() {
   status.textContent = settings.autoCloseEnabled
     ? `Auto-close: on — tabs inactive for ${settings.autoCloseMinutes} min are saved to "Auto Closed" and closed.`
     : "Auto-close: off (enable it from the Dashboard).";
+
+  // Duplicate tabs in this window (same URL, keep one per group).
+  const byUrl = new Map();
+  for (const tab of tabs) {
+    if (!tab.url) continue;
+    if (!byUrl.has(tab.url)) byUrl.set(tab.url, []);
+    byUrl.get(tab.url).push(tab);
+  }
+  const extras = [];
+  for (const group of byUrl.values()) {
+    if (group.length < 2) continue;
+    const keep = group.find((t) => t.active) || group[0];
+    extras.push(...group.filter((t) => t !== keep));
+  }
+  const dupBtn = document.getElementById("close-duplicates");
+  dupBtn.classList.toggle("hidden", extras.length === 0);
+  if (extras.length) {
+    dupBtn.textContent = `🧹 Close ${extras.length} duplicate tab${extras.length === 1 ? "" : "s"}`;
+    dupBtn.onclick = async () => {
+      await chrome.tabs.remove(extras.map((t) => t.id));
+      render();
+    };
+  }
 }
 
 document.getElementById("open-dashboard").addEventListener("click", () => {

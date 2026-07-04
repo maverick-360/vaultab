@@ -231,7 +231,36 @@ function attachTabDropZone(card, colId, folderId) {
 // ---------------------------------------------------------------------------
 // Tab row
 
-function renderTabRow(col, folder, tab, draggable = true) {
+// Removes opened links from their collection when the corral-style
+// "restore removes" setting is on.
+async function maybeRemoveRestored(colId, tabIds) {
+  const settings = await getSettings();
+  if (!settings.restoreRemoves) return;
+  const ids = new Set(tabIds);
+  mutateCollections((cs) => {
+    const c = findCollection(cs, colId);
+    if (!c) return;
+    c.tabs = c.tabs.filter((t) => !ids.has(t.id));
+    for (const f of c.folders) f.tabs = f.tabs.filter((t) => !ids.has(t.id));
+    return c;
+  });
+}
+
+// Duplicate URLs in view order (folders first, then root); the first
+// occurrence is the keeper, later ones are flagged.
+function findDuplicateIds(col) {
+  const seen = new Set();
+  const dupIds = new Set();
+  for (const list of [...col.folders.map((f) => f.tabs), col.tabs]) {
+    for (const t of list) {
+      if (seen.has(t.url)) dupIds.add(t.id);
+      else seen.add(t.url);
+    }
+  }
+  return dupIds;
+}
+
+function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
   const row = document.createElement("div");
   row.className = "tab-row";
 
@@ -246,7 +275,16 @@ function renderTabRow(col, folder, tab, draggable = true) {
   link.addEventListener("click", (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: tab.url, active: false });
+    maybeRemoveRestored(col.id, [tab.id]);
   });
+
+  let dupBadge = null;
+  if (isDup) {
+    dupBadge = document.createElement("span");
+    dupBadge.className = "dup-badge";
+    dupBadge.textContent = "dup";
+    dupBadge.title = "Duplicate URL in this collection";
+  }
 
   const host = document.createElement("span");
   host.className = "host";
@@ -281,7 +319,9 @@ function renderTabRow(col, folder, tab, draggable = true) {
     });
   });
 
-  row.append(img, link, host, del);
+  row.append(img, link);
+  if (dupBadge) row.appendChild(dupBadge);
+  row.append(host, del);
   return row;
 }
 
@@ -351,14 +391,45 @@ async function renderCollectionView() {
     });
   });
 
+  const allEntries = () => [...col.folders.flatMap((f) => f.tabs), ...col.tabs];
+
   const restoreBtn = document.createElement("button");
   restoreBtn.className = "primary";
   restoreBtn.textContent = "↗ Open all";
-  restoreBtn.addEventListener("click", () => {
-    const urls = [...col.tabs, ...col.folders.flatMap((f) => f.tabs)].map((t) => t.url);
-    if (urls.length > 15 && !confirm(`Open ${urls.length} tabs?`)) return;
-    for (const url of urls) chrome.tabs.create({ url, active: false });
+  restoreBtn.addEventListener("click", async () => {
+    const entries = allEntries();
+    if (entries.length > 15 && !confirm(`Open ${entries.length} tabs?`)) return;
+    for (const t of entries) chrome.tabs.create({ url: t.url, active: false });
+    maybeRemoveRestored(col.id, entries.map((t) => t.id));
   });
+
+  const newWindowBtn = document.createElement("button");
+  newWindowBtn.textContent = "⧉ Open in new window";
+  newWindowBtn.addEventListener("click", async () => {
+    const entries = allEntries();
+    if (!entries.length) return;
+    if (entries.length > 15 && !confirm(`Open ${entries.length} tabs in a new window?`)) return;
+    await chrome.windows.create({ url: entries.map((t) => t.url) });
+    maybeRemoveRestored(col.id, entries.map((t) => t.id));
+  });
+
+  const dupIds = findDuplicateIds(col);
+  let dedupeBtn = null;
+  if (dupIds.size) {
+    dedupeBtn = document.createElement("button");
+    dedupeBtn.textContent = `🧹 Remove ${dupIds.size} duplicate${dupIds.size === 1 ? "" : "s"}`;
+    dedupeBtn.title = "Keep the first occurrence of each URL and remove the rest";
+    dedupeBtn.addEventListener("click", () => {
+      if (!confirm(`Remove ${dupIds.size} duplicate link${dupIds.size === 1 ? "" : "s"} from "${col.name}"?`)) return;
+      mutateCollections((cs) => {
+        const c = findCollection(cs, col.id);
+        const dups = findDuplicateIds(c);
+        c.tabs = c.tabs.filter((t) => !dups.has(t.id));
+        for (const f of c.folders) f.tabs = f.tabs.filter((t) => !dups.has(t.id));
+        return c;
+      });
+    });
+  }
 
   const hideBtn = document.createElement("button");
   hideBtn.textContent = col.hidden ? "👁 Unhide" : "🙈 Hide";
@@ -385,7 +456,9 @@ async function renderCollectionView() {
     });
   });
 
-  toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, hideBtn, deleteBtn);
+  toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, newWindowBtn);
+  if (dedupeBtn) toolbar.appendChild(dedupeBtn);
+  toolbar.append(hideBtn, deleteBtn);
   header.append(left, toolbar);
   $content.appendChild(header);
 
@@ -423,6 +496,7 @@ async function renderCollectionView() {
     openAll.textContent = "↗";
     openAll.addEventListener("click", () => {
       for (const t of folder.tabs) chrome.tabs.create({ url: t.url, active: false });
+      maybeRemoveRestored(col.id, folder.tabs.map((t) => t.id));
     });
 
     const hideFolder = document.createElement("button");
@@ -470,7 +544,9 @@ async function renderCollectionView() {
       empty.textContent = "Empty folder — drag links here.";
       card.appendChild(empty);
     }
-    for (const tab of folder.tabs) card.appendChild(renderTabRow(col, folder, tab));
+    for (const tab of folder.tabs) {
+      card.appendChild(renderTabRow(col, folder, tab, true, dupIds.has(tab.id)));
+    }
     attachTabDropZone(card, col.id, folder.id);
     $content.appendChild(card);
   }
@@ -501,7 +577,9 @@ async function renderCollectionView() {
     empty.textContent = "No links here yet.";
     rootCard.appendChild(empty);
   }
-  for (const tab of col.tabs) rootCard.appendChild(renderTabRow(col, null, tab));
+  for (const tab of col.tabs) {
+    rootCard.appendChild(renderTabRow(col, null, tab, true, dupIds.has(tab.id)));
+  }
   attachTabDropZone(rootCard, col.id, null);
   $content.appendChild(rootCard);
 }
@@ -706,6 +784,16 @@ async function renderSettingsView() {
   );
   row4.appendChild(cap);
 
+  const rowRestore = document.createElement("div");
+  rowRestore.className = "settings-row";
+  rowRestore.innerHTML = `<label for="s-restore">Opening a link removes it from its collection<div class="meta">Corral-style restore: links (and "Open all") are deleted from the collection once opened.</div></label>`;
+  const restore = document.createElement("input");
+  restore.type = "checkbox";
+  restore.id = "s-restore";
+  restore.checked = settings.restoreRemoves;
+  restore.addEventListener("change", () => save({ restoreRemoves: restore.checked }));
+  rowRestore.appendChild(restore);
+
   const row5 = document.createElement("div");
   row5.className = "settings-row";
   row5.innerHTML = `<label for="s-theme">Theme</label>`;
@@ -724,7 +812,7 @@ async function renderSettingsView() {
   });
   row5.appendChild(theme);
 
-  card.append(row1, row2, row3, row4, row5);
+  card.append(row1, row2, row3, row4, rowRestore, row5);
   $content.appendChild(card);
 
   await renderLockedSites();
