@@ -60,6 +60,48 @@ async function renderSidebar() {
       $searchInput.value = "";
       renderAll();
     });
+
+    li.draggable = true;
+    li.addEventListener("dragstart", (e) => {
+      colDrag = col.id;
+      e.dataTransfer.effectAllowed = "move";
+      li.classList.add("dragging");
+    });
+    li.addEventListener("dragend", () => {
+      colDrag = null;
+      li.classList.remove("dragging");
+      clearDropMarkers();
+    });
+    li.addEventListener("dragover", (e) => {
+      if (!colDrag || colDrag === col.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      clearDropMarkers();
+      const r = li.getBoundingClientRect();
+      li.classList.add(e.clientY < r.top + r.height / 2 ? "drop-before" : "drop-into");
+    });
+    li.addEventListener("dragleave", () => {
+      li.classList.remove("drop-before", "drop-into");
+    });
+    li.addEventListener("drop", (e) => {
+      if (!colDrag || colDrag === col.id) return;
+      e.preventDefault();
+      const r = li.getBoundingClientRect();
+      const before = e.clientY < r.top + r.height / 2;
+      const dragged = colDrag;
+      colDrag = null;
+      clearDropMarkers();
+      mutateCollections((cs) => {
+        const fromIdx = cs.findIndex((c) => c.id === dragged);
+        if (fromIdx === -1) return;
+        const [moved] = cs.splice(fromIdx, 1);
+        let toIdx = cs.findIndex((c) => c.id === col.id);
+        if (!before) toIdx++;
+        cs.splice(toIdx, 0, moved);
+        // reordering is not a content change: no updatedAt bump
+      });
+    });
+
     li.appendChild(btn);
     $collectionList.appendChild(li);
   };
@@ -121,9 +163,75 @@ function makeEditableName(el, currentName, onSave) {
 }
 
 // ---------------------------------------------------------------------------
+// Drag and drop
+
+let tabDrag = null; // { colId, folderId|null, tabId }
+let colDrag = null; // collection id
+
+function clearDropMarkers() {
+  document.querySelectorAll(".drop-before, .drop-into").forEach((el) => {
+    el.classList.remove("drop-before", "drop-into");
+  });
+}
+
+// Where a drop at height `y` lands among a card's rows.
+function rowInsertIndex(card, y) {
+  const rows = [...card.querySelectorAll(".tab-row")];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i].getBoundingClientRect();
+    if (y < r.top + r.height / 2) return { index: i, row: rows[i] };
+  }
+  return { index: rows.length, row: null };
+}
+
+function moveTabTo(colId, tabId, fromFolderId, toFolderId, toIndex) {
+  mutateCollections((cs) => {
+    const c = findCollection(cs, colId);
+    if (!c) return;
+    const listOf = (fid) =>
+      fid ? (c.folders.find((f) => f.id === fid) || {}).tabs : c.tabs;
+    const src = listOf(fromFolderId);
+    const dst = listOf(toFolderId);
+    if (!src || !dst) return c;
+    const idx = src.findIndex((t) => t.id === tabId);
+    if (idx === -1) return c;
+    let insert = Math.min(toIndex ?? dst.length, dst.length);
+    if (src === dst && idx < insert) insert--;
+    const [moved] = src.splice(idx, 1);
+    dst.splice(insert, 0, moved);
+    return c;
+  });
+}
+
+// Lets a folder card (or the root card, folderId = null) accept link drops.
+function attachTabDropZone(card, colId, folderId) {
+  card.addEventListener("dragover", (e) => {
+    if (!tabDrag || tabDrag.colId !== colId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    clearDropMarkers();
+    const { row } = rowInsertIndex(card, e.clientY);
+    if (row) row.classList.add("drop-before");
+    else card.classList.add("drop-into");
+  });
+  card.addEventListener("dragleave", (e) => {
+    if (!card.contains(e.relatedTarget)) clearDropMarkers();
+  });
+  card.addEventListener("drop", (e) => {
+    if (!tabDrag || tabDrag.colId !== colId) return;
+    e.preventDefault();
+    const { index } = rowInsertIndex(card, e.clientY);
+    const drag = tabDrag;
+    tabDrag = null;
+    clearDropMarkers();
+    moveTabTo(drag.colId, drag.tabId, drag.folderId, folderId, index);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Tab row
 
-function renderTabRow(col, folder, tab) {
+function renderTabRow(col, folder, tab, draggable = true) {
   const row = document.createElement("div");
   row.className = "tab-row";
 
@@ -144,35 +252,20 @@ function renderTabRow(col, folder, tab) {
   host.className = "host";
   host.textContent = hostnameOf(tab.url);
 
-  const move = document.createElement("select");
-  move.title = "Move to folder";
-  const options = [
-    { value: "", label: folder ? "📁 " + folder.name : "— no folder —" },
-    ...(!folder ? [] : [{ value: "__root__", label: "— no folder —" }]),
-    ...col.folders
-      .filter((f) => !folder || f.id !== folder.id)
-      .map((f) => ({ value: f.id, label: "📁 " + f.name + (f.hidden ? " (hidden)" : "") })),
-  ];
-  for (const o of options) {
-    const opt = document.createElement("option");
-    opt.value = o.value;
-    opt.textContent = o.label;
-    move.appendChild(opt);
-  }
-  move.addEventListener("change", () => {
-    const dest = move.value;
-    if (!dest) return;
-    mutateCollections((collections) => {
-      const c = findCollection(collections, col.id);
-      const source = folder ? c.folders.find((f) => f.id === folder.id).tabs : c.tabs;
-      const idx = source.findIndex((t) => t.id === tab.id);
-      if (idx === -1) return c;
-      const [moved] = source.splice(idx, 1);
-      if (dest === "__root__") c.tabs.push(moved);
-      else c.folders.find((f) => f.id === dest).tabs.push(moved);
-      return c;
+  if (draggable) {
+    row.draggable = true;
+    row.addEventListener("dragstart", (e) => {
+      tabDrag = { colId: col.id, folderId: folder ? folder.id : null, tabId: tab.id };
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", tab.url);
+      row.classList.add("dragging");
     });
-  });
+    row.addEventListener("dragend", () => {
+      tabDrag = null;
+      row.classList.remove("dragging");
+      clearDropMarkers();
+    });
+  }
 
   const del = document.createElement("button");
   del.className = "ghost danger";
@@ -188,7 +281,7 @@ function renderTabRow(col, folder, tab) {
     });
   });
 
-  row.append(img, link, host, move, del);
+  row.append(img, link, host, del);
   return row;
 }
 
@@ -374,10 +467,11 @@ async function renderCollectionView() {
     if (!folder.tabs.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Empty folder — move links here with the folder dropdown.";
+      empty.textContent = "Empty folder — drag links here.";
       card.appendChild(empty);
     }
     for (const tab of folder.tabs) card.appendChild(renderTabRow(col, folder, tab));
+    attachTabDropZone(card, col.id, folder.id);
     $content.appendChild(card);
   }
 
@@ -408,6 +502,7 @@ async function renderCollectionView() {
     rootCard.appendChild(empty);
   }
   for (const tab of col.tabs) rootCard.appendChild(renderTabRow(col, null, tab));
+  attachTabDropZone(rootCard, col.id, null);
   $content.appendChild(rootCard);
 }
 
@@ -466,13 +561,21 @@ async function renderSearchView() {
   const card = document.createElement("div");
   card.className = "card";
   for (const { col, folder, tab } of results) {
-    const row = renderTabRow(col, folder, tab);
+    const row = renderTabRow(col, folder, tab, false);
     const context = document.createElement("span");
-    context.className = "result-context";
+    context.className = "result-context clickable";
+    context.title = "Go to collection";
     context.innerHTML =
       "in " + highlight(col.name, q) +
       (folder ? " / 📁 " + highlight(folder.name, q) : "");
-    row.insertBefore(context, row.querySelector("select"));
+    context.addEventListener("click", () => {
+      state.view = "collection";
+      state.selectedCollectionId = col.id;
+      state.query = "";
+      $searchInput.value = "";
+      renderAll();
+    });
+    row.insertBefore(context, row.querySelector("button.ghost.danger"));
     // Re-render title/host with highlight
     const link = row.querySelector("a");
     link.innerHTML = highlight(tab.title || hostnameOf(tab.url), q);
