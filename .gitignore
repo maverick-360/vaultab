@@ -1,0 +1,3 @@
+# Personal browsing-history exports — keep out of version control
+TabWranglerExport-*.json
+TabKeeper-import-*.json

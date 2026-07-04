@@ -598,6 +598,26 @@ function sanitizeImported(data) {
   }));
 }
 
+// Merges imported stats counters additively into the existing stats.
+async function mergeImportedStats(imported) {
+  if (!imported || typeof imported !== "object") return false;
+  const stats = await getStats();
+  for (const key of ["opened", "closed", "autoClosed"]) {
+    stats[key] = (stats[key] || 0) + (Number(imported[key]) || 0);
+  }
+  if (imported.byDay && typeof imported.byDay === "object") {
+    for (const [day, counts] of Object.entries(imported.byDay)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !counts) continue;
+      const d = (stats.byDay[day] = stats.byDay[day] || { opened: 0, closed: 0, autoClosed: 0 });
+      for (const key of ["opened", "closed", "autoClosed"]) {
+        d[key] = (d[key] || 0) + (Number(counts[key]) || 0);
+      }
+    }
+  }
+  await chrome.storage.local.set({ stats });
+  return true;
+}
+
 function downloadJson(filename, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -631,12 +651,13 @@ function renderImportExport() {
   const exportBtn = document.createElement("button");
   exportBtn.textContent = "⬇ Export";
   exportBtn.addEventListener("click", async () => {
-    const collections = await getCollections();
+    const [collections, stats] = await Promise.all([getCollections(), getStats()]);
     downloadJson(`tabkeeper-export-${todayKey()}.json`, {
       app: "TabKeeper",
       version: 1,
       exportedAt: new Date().toISOString(),
       collections,
+      stats,
     });
     setStatus(`Exported ${collections.length} collections.`);
   });
@@ -657,12 +678,18 @@ function renderImportExport() {
     fileInput.value = "";
     if (!file) return;
     try {
-      const imported = sanitizeImported(JSON.parse(await file.text()));
+      const data = JSON.parse(await file.text());
+      const imported = sanitizeImported(data);
       const collections = await getCollections();
       collections.push(...imported);
       await setCollections(collections);
+      const mergedStats = await mergeImportedStats(data && data.stats);
       const links = imported.reduce((n, c) => n + collectionTabCount(c), 0);
-      setStatus(`Imported ${imported.length} collections (${links} links) from ${file.name}.`);
+      setStatus(
+        `Imported ${imported.length} collections (${links} links)` +
+          (mergedStats ? " and merged stats" : "") +
+          ` from ${file.name}.`
+      );
       renderSidebar();
     } catch (err) {
       setStatus(`Import failed: ${err.message}`, true);

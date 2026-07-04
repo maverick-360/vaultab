@@ -72,8 +72,25 @@ stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} } }
 
 Import accepts either a full export (`{ "collections": [...] }`) or a bare
 array of collections. Only `url` is required per link; `title`, folder
-names, and timestamps are optional and filled with sensible defaults. See
+names, and timestamps are optional and filled with sensible defaults. If
+the file has a top-level `stats` object (`opened`, `closed`, `autoClosed`,
+`byDay`), its counters are merged additively into your existing stats. See
 [example-import.json](example-import.json).
+
+## Migrating from Tab Wrangler
+
+`convert-tabwrangler.py` converts a Tab Wrangler export into a TabKeeper
+import file:
+
+```
+python3 convert-tabwrangler.py TabWranglerExport-YYYY-MM-DD.json out.json
+```
+
+It creates one collection per month (from each tab's `closedAt`), a folder
+per domain with 5+ tabs that month, and maps Tab Wrangler's lifetime
+counters to TabKeeper stats (`totalTabsRemoved` → closed,
+`totalTabsWrangled` → auto-closed) with per-day counts rebuilt from
+`closedAt`. Import the result from **Settings → Import**.
 
 Per-browser-session state (`chrome.storage.session`): `tabActivity`
 (last-used timestamps) and `lockedTabs`.
