@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TabKeeper — Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <aside id="sidebar">
+    <div class="brand">TabKeeper</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">
+        <span>Collections</span>
+        <button id="new-collection" title="New collection">＋</button>
+      </div>
+      <ul id="collection-list"></ul>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading"><span>Views</span></div>
+      <ul class="nav">
+        <li><button class="nav-btn" data-view="stats">📊 Stats</button></li>
+        <li><button class="nav-btn" data-view="settings">⚙️ Settings</button></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main>
+    <div id="search-bar">
+      <input id="search-input" type="search"
+             placeholder="Search by site name, URL, folder or collection…" />
+    </div>
+    <div id="content"></div>
+  </main>
+
+  <script src="common.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

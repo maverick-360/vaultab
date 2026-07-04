@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>TabKeeper</h1>
+    <button id="open-dashboard" class="primary">Dashboard</button>
+  </header>
+
+  <div class="actions">
+    <button id="save-window">💾 Save window to collection</button>
+  </div>
+
+  <div class="hint">
+    Lock a tab (🔓 → 🔒) to protect it from auto-close.
+  </div>
+
+  <ul id="tab-list"></ul>
+
+  <footer id="autoclose-status"></footer>
+
+  <script src="common.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

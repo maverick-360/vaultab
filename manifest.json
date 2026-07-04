@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "TabKeeper - Sessions & Auto-Close",
+  "version": "1.0.0",
+  "description": "Save tabs into collections and folders, search everything, auto-close inactive tabs (with tab locking), and track tab stats.",
+  "permissions": ["tabs", "storage", "alarms", "favicon"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TabKeeper"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

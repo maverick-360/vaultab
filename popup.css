@@ -1,0 +1,91 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 380px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  background: #f9fafb;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #111827;
+  color: #fff;
+}
+
+header h1 { font-size: 15px; font-weight: 600; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 10px;
+}
+
+button:hover { background: #f3f4f6; }
+
+button.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+button.primary:hover { background: #1d4ed8; }
+
+.actions { padding: 10px 12px 4px; }
+.actions button { width: 100%; }
+
+.hint {
+  padding: 6px 12px;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+#tab-list {
+  list-style: none;
+  max-height: 360px;
+  overflow-y: auto;
+  border-top: 1px solid #e5e7eb;
+}
+
+#tab-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #eef0f2;
+  background: #fff;
+}
+
+#tab-list li.locked { background: #fef9c3; }
+
+#tab-list img { width: 16px; height: 16px; flex: none; }
+
+#tab-list .title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lock-btn {
+  border: none;
+  background: none;
+  font-size: 15px;
+  padding: 2px 4px;
+}
+
+.lock-btn:hover { background: #e5e7eb; border-radius: 4px; }
+
+footer {
+  padding: 8px 12px;
+  color: #6b7280;
+  font-size: 11px;
+  border-top: 1px solid #e5e7eb;
+}
