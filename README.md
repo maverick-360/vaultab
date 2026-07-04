@@ -17,9 +17,13 @@ inactive-tab auto-closer.
    and collection names, with highlighted results.
 5. **Auto-close** — tabs inactive for a configurable number of minutes
    (default 20) are closed automatically and saved to the **Auto Closed**
-   collection so nothing is lost. Active, pinned, audible, and
-   non-http(s) tabs are never touched, and a window is never shrunk below a
-   configurable minimum tab count (default 5).
+   collection so nothing is lost. Inside it, each link is filed into a
+   folder named after its domain, grouping similar tabs together; closing
+   the same URL again replaces the old entry instead of duplicating it,
+   and the size cap applies across all folders (oldest links dropped,
+   empty folders removed). Active, pinned, audible, and non-http(s) tabs
+   are never touched, and a window is never shrunk below a configurable
+   minimum tab count (default 5).
 6. **Tab lock** — in the popup, click 🔓 next to any tab to lock it (🔒);
    locked tabs are exempt from auto-close. Locks last for the browser
    session (tab ids reset on restart). For permanent protection, click 📌

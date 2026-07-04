@@ -284,6 +284,24 @@ async function bumpAutoClosedSites(tabs) {
   await chrome.storage.local.set({ stats: s });
 }
 
+function domainOf(url) {
+  return (hostnameOf(url || "") || "").replace(/^www\./, "") || "other";
+}
+
+// Enforces the cap across the whole collection (folders + root), dropping
+// the oldest links first and removing folders that end up empty.
+function capAutoClosed(col, cap) {
+  const all = [...col.tabs, ...col.folders.flatMap((f) => f.tabs)];
+  if (all.length <= cap) return;
+  all.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const keep = new Set(all.slice(0, cap).map((t) => t.id));
+  col.tabs = col.tabs.filter((t) => keep.has(t.id));
+  for (const f of col.folders) f.tabs = f.tabs.filter((t) => keep.has(t.id));
+  col.folders = col.folders.filter((f) => f.tabs.length);
+}
+
+// Auto-closed tabs are grouped into per-domain folders ("similar tabs")
+// inside the Auto Closed collection, newest first.
 async function saveToAutoClosed(tabs, cap) {
   const { collections = [] } = await chrome.storage.local.get("collections");
   let col = collections.find((c) => c.id === AUTO_CLOSED_ID);
@@ -292,14 +310,26 @@ async function saveToAutoClosed(tabs, cap) {
     col = { id: AUTO_CLOSED_ID, name: "Auto Closed", createdAt: ts, updatedAt: ts, folders: [], tabs: [] };
     collections.unshift(col);
   }
-  const entries = tabs.map((tab) => ({
-    id: uid(),
-    title: (tab.title && tab.title.trim()) || hostnameOf(tab.url || ""),
-    url: tab.url || "",
-    addedAt: Date.now(),
-  }));
-  col.tabs.unshift(...entries);
-  if (col.tabs.length > cap) col.tabs.length = cap;
-  col.updatedAt = Date.now();
+  const ts = Date.now();
+  for (const tab of tabs) {
+    const domain = domainOf(tab.url);
+    let folder = col.folders.find((f) => f.name === domain);
+    if (!folder) {
+      folder = { id: uid(), name: domain, createdAt: ts, updatedAt: ts, tabs: [] };
+      col.folders.push(folder);
+    }
+    // Same URL closed again: replace the old entry instead of duplicating.
+    const dup = folder.tabs.findIndex((t) => t.url === tab.url);
+    if (dup !== -1) folder.tabs.splice(dup, 1);
+    folder.tabs.unshift({
+      id: uid(),
+      title: (tab.title && tab.title.trim()) || hostnameOf(tab.url || ""),
+      url: tab.url || "",
+      addedAt: ts,
+    });
+    folder.updatedAt = ts;
+  }
+  capAutoClosed(col, cap);
+  col.updatedAt = ts;
   await chrome.storage.local.set({ collections });
 }
