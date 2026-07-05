@@ -82,6 +82,34 @@ body[data-theme="ocean"] {
   --input-bg: #ffffff;
 }
 
+body[data-theme="catppuccin"] {
+  /* Catppuccin Mocha palette (MIT) */
+  --bg: #1e1e2e;
+  --card: #181825;
+  --card-head: #11111b;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --muted-2: #6c7086;
+  --border: #313244;
+  --border-light: #24243a;
+  --hover: #313244;
+  --hover-strong: #45475a;
+  --accent: #cba6f7;
+  --accent-hover: #b4befe;
+  --accent-text: #11111b;
+  --link: #89b4fa;
+  --danger: #f38ba8;
+  --sidebar: #11111b;
+  --sidebar-text: #cdd6f4;
+  --sidebar-muted: #6c7086;
+  --sidebar-count: #6c7086;
+  --sidebar-hover: #313244;
+  --sidebar-border: #313244;
+  --brand-text: #cba6f7;
+  --mark: rgba(249, 226, 175, 0.3);
+  --input-bg: #11111b;
+}
+
 body {
   display: flex;
   min-height: 100vh;

@@ -55,6 +55,25 @@ body[data-theme="ocean"] {
   --input-bg: #ffffff;
 }
 
+body[data-theme="catppuccin"] {
+  /* Catppuccin Mocha palette (MIT) */
+  --bg: #1e1e2e;
+  --card: #181825;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --border: #313244;
+  --border-light: #24243a;
+  --hover: #313244;
+  --hover-strong: #45475a;
+  --accent: #cba6f7;
+  --accent-hover: #b4befe;
+  --accent-text: #11111b;
+  --header-bg: #11111b;
+  --header-text: #cba6f7;
+  --locked: rgba(249, 226, 175, 0.18);
+  --input-bg: #11111b;
+}
+
 body {
   width: 420px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

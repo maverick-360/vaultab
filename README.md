@@ -51,7 +51,7 @@ Rebind at `chrome://extensions/shortcuts`.
 ### Other Highlights
 - **Import / Export** — full JSON backup; stats merged additively; CSV time-data export
 - **Undo** — delete anything and undo within 6 seconds, no confirm dialogs
-- **Themes** — Light, Dark, and Ocean (applies to popup + dashboard)
+- **Themes** — Light, Dark, Ocean, and Catppuccin (applies to popup + dashboard)
 - **Restore options** — open a collection in current or new window; optionally remove links on open
 - **Synced settings** — preferences follow your Chrome profile across machines
 - **Single-tab save** — ➕ button in popup saves one tab to any collection

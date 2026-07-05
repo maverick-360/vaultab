@@ -19,6 +19,7 @@ const THEMES = [
   { id: "light", label: "Light" },
   { id: "dark", label: "Dark" },
   { id: "ocean", label: "Ocean" },
+  { id: "catppuccin", label: "Catppuccin" },
 ];
 
 function uid() {
