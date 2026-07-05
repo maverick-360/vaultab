@@ -1,7 +1,10 @@
-# TabKeeper — Sessions & Auto-Close
+# Vaultab — Tab Manager, Auto-Close & Time Tracker
 
-A Chrome extension (Manifest V3) that combines a session manager with an
-inactive-tab auto-closer.
+Vaultab is a Manifest V3 Chrome extension that brings together everything
+you need to tame browser chaos: a full session manager with collections and
+folders, smart auto-close that quietly sweeps away idle tabs and saves them
+for later, per-site tab locking, time-spent analytics with donut charts and
+weekday histograms, keyboard shortcuts, undo, themes, and import/export.
 
 ## Features
 

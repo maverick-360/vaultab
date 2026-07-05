@@ -1271,7 +1271,7 @@ function sanitizeImportedTabs(tabs) {
     }));
 }
 
-// Accepts a TabKeeper export ({ collections: [...] }) or a bare array of
+// Accepts a Vaultab export ({ collections: [...] }) or a bare array of
 // collections. Ids are regenerated to avoid collisions with existing data.
 function sanitizeImported(data) {
   const list = Array.isArray(data)
@@ -1386,7 +1386,7 @@ function renderImportExport() {
       chrome.storage.local.get(["timeSpent", "timeTrackingSince"]),
     ]);
     downloadJson(`tabkeeper-export-${todayKey()}.json`, {
-      app: "TabKeeper",
+      app: "Vaultab",
       version: 1,
       exportedAt: new Date().toISOString(),
       collections,
