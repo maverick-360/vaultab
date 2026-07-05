@@ -3,7 +3,7 @@
   "name": "TabKeeper - Sessions & Auto-Close",
   "version": "1.0.0",
   "description": "Save tabs into collections and folders, search everything, auto-close inactive tabs (with tab locking), and track tab stats.",
-  "permissions": ["tabs", "storage", "alarms", "favicon"],
+  "permissions": ["tabs", "storage", "alarms", "favicon", "idle"],
   "background": {
     "service_worker": "background.js"
   },

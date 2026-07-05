@@ -1004,7 +1004,103 @@ async function renderSettingsView() {
 
   await renderAutoCloseScope(settings);
   await renderLockedSites();
+  renderTimeTracking(settings);
   renderImportExport();
+}
+
+// ---------------------------------------------------------------------------
+// Time tracking settings
+
+function renderTimeTracking(settings) {
+  const title = document.createElement("h3");
+  title.className = "section-title";
+  title.textContent = "Time tracking";
+  $content.appendChild(title);
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.padding = "6px 18px";
+
+  // Idle cutoff slider
+  const rowIdle = document.createElement("div");
+  rowIdle.className = "settings-row";
+  const idleLabel = document.createElement("label");
+  const idleText = () =>
+    `Stop tracking if no activity detected for ${idle.value} seconds`;
+  const idle = document.createElement("input");
+  idle.type = "range";
+  idle.min = "15";
+  idle.max = "300";
+  idle.step = "15";
+  idle.value = settings.idleSeconds;
+  idle.addEventListener("input", () => (idleLabel.textContent = idleText()));
+  idle.addEventListener("change", () =>
+    saveSettings({ idleSeconds: Number(idle.value) })
+  );
+  idleLabel.textContent = idleText();
+  rowIdle.append(idleLabel, idle);
+
+  // Chart gap slider
+  const rowGap = document.createElement("div");
+  rowGap.className = "settings-row";
+  const gapLabel = document.createElement("label");
+  const gapText = () => `Gap between graph parts: ${gap.value}`;
+  const gap = document.createElement("input");
+  gap.type = "range";
+  gap.min = "0";
+  gap.max = "10";
+  gap.step = "1";
+  gap.value = settings.chartGap;
+  gap.addEventListener("input", () => (gapLabel.textContent = gapText()));
+  gap.addEventListener("change", () => saveSettings({ chartGap: Number(gap.value) }));
+  gapLabel.textContent = gapText();
+  rowGap.append(gapLabel, gap);
+
+  // Badge toggle
+  const rowBadge = document.createElement("div");
+  rowBadge.className = "settings-row";
+  rowBadge.innerHTML = `<label for="s-badge">Display time tracker in icon<div class="meta">Shows today's time on the current site as a toolbar badge.</div></label>`;
+  const badge = document.createElement("input");
+  badge.type = "checkbox";
+  badge.id = "s-badge";
+  badge.checked = settings.badgeTimer;
+  badge.addEventListener("change", () => saveSettings({ badgeTimer: badge.checked }));
+  rowBadge.appendChild(badge);
+
+  // Export to CSV
+  const rowCsv = document.createElement("div");
+  rowCsv.className = "settings-row";
+  rowCsv.innerHTML = `<label>Export time data to CSV</label>`;
+  const csvBtn = document.createElement("button");
+  csvBtn.textContent = "⬇ Export to CSV";
+  csvBtn.addEventListener("click", async () => {
+    const { timeSpent = {} } = await chrome.storage.local.get("timeSpent");
+    const lines = ["day,host,seconds"];
+    for (const day of Object.keys(timeSpent).sort()) {
+      const hosts = Object.entries(timeSpent[day]).sort((a, b) => b[1] - a[1]);
+      for (const [host, secs] of hosts) {
+        lines.push(`${day},"${host.replaceAll('"', '""')}",${secs}`);
+      }
+    }
+    downloadText(`tabkeeper-time-${todayKey()}.csv`, lines.join("\n"), "text/csv");
+  });
+  rowCsv.appendChild(csvBtn);
+
+  // Clear time data
+  const rowClear = document.createElement("div");
+  rowClear.className = "settings-row";
+  rowClear.innerHTML = `<label>Clear all time data<div class="meta">Deletes every per-site time record. Cannot be undone.</div></label>`;
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "danger";
+  clearBtn.textContent = "Clear all data";
+  clearBtn.addEventListener("click", async () => {
+    if (!confirm("Delete all time-tracking data? This cannot be undone.")) return;
+    await chrome.storage.local.remove(["timeSpent", "timeTrackingSince"]);
+  });
+  rowClear.appendChild(clearBtn);
+
+  card.append(rowIdle, rowGap, rowBadge, rowCsv, rowClear);
+  $content.appendChild(card);
 }
 
 // ---------------------------------------------------------------------------
@@ -1207,6 +1303,26 @@ function sanitizeImported(data) {
   }));
 }
 
+// Merges imported per-day/per-host time records additively.
+async function mergeImportedTime(imported, importedSince) {
+  if (!imported || typeof imported !== "object") return false;
+  const { timeSpent = {}, timeTrackingSince } =
+    await chrome.storage.local.get(["timeSpent", "timeTrackingSince"]);
+  for (const [day, hosts] of Object.entries(imported)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !hosts || typeof hosts !== "object") continue;
+    timeSpent[day] = timeSpent[day] || {};
+    for (const [host, secs] of Object.entries(hosts)) {
+      timeSpent[day][host] = (timeSpent[day][host] || 0) + (Number(secs) || 0);
+    }
+  }
+  const candidates = [timeTrackingSince, Number(importedSince) || undefined].filter(Boolean);
+  await chrome.storage.local.set({
+    timeSpent,
+    ...(candidates.length ? { timeTrackingSince: Math.min(...candidates) } : {}),
+  });
+  return true;
+}
+
 // Merges imported stats counters additively into the existing stats.
 async function mergeImportedStats(imported) {
   if (!imported || typeof imported !== "object") return false;
@@ -1227,14 +1343,18 @@ async function mergeImportedStats(imported) {
   return true;
 }
 
-function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+function downloadText(filename, content, type) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadJson(filename, data) {
+  downloadText(filename, JSON.stringify(data, null, 2), "application/json");
 }
 
 function renderImportExport() {
@@ -1260,13 +1380,19 @@ function renderImportExport() {
   const exportBtn = document.createElement("button");
   exportBtn.textContent = "⬇ Export";
   exportBtn.addEventListener("click", async () => {
-    const [collections, stats] = await Promise.all([getCollections(), getStats()]);
+    const [collections, stats, timeData] = await Promise.all([
+      getCollections(),
+      getStats(),
+      chrome.storage.local.get(["timeSpent", "timeTrackingSince"]),
+    ]);
     downloadJson(`tabkeeper-export-${todayKey()}.json`, {
       app: "TabKeeper",
       version: 1,
       exportedAt: new Date().toISOString(),
       collections,
       stats,
+      timeSpent: timeData.timeSpent || {},
+      timeTrackingSince: timeData.timeTrackingSince,
     });
     setStatus(`Exported ${collections.length} collections.`);
   });
@@ -1293,10 +1419,15 @@ function renderImportExport() {
       collections.push(...imported);
       await setCollections(collections);
       const mergedStats = await mergeImportedStats(data && data.stats);
+      const mergedTime = await mergeImportedTime(
+        data && data.timeSpent,
+        data && data.timeTrackingSince
+      );
       const links = imported.reduce((n, c) => n + collectionTabCount(c), 0);
+      const merged = [mergedStats && "stats", mergedTime && "time data"].filter(Boolean);
       setStatus(
         `Imported ${imported.length} collections (${links} links)` +
-          (mergedStats ? " and merged stats" : "") +
+          (merged.length ? ` and merged ${merged.join(" and ")}` : "") +
           ` from ${file.name}.`
       );
       renderSidebar();
@@ -1306,7 +1437,21 @@ function renderImportExport() {
   });
   rowImport.append(importBtn, fileInput);
 
-  card.append(rowExport, rowImport, status);
+  const rowReset = document.createElement("div");
+  rowReset.className = "settings-row";
+  rowReset.innerHTML = `<label>Reset settings<div class="meta">Restores every preference to its default. Collections and stats are kept.</div></label>`;
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "danger";
+  resetBtn.textContent = "Reset settings";
+  resetBtn.addEventListener("click", async () => {
+    if (!confirm("Reset all settings to their defaults?")) return;
+    await chrome.storage.sync.set({ settings: { ...DEFAULT_SETTINGS } });
+    await applyTheme();
+    renderAll();
+  });
+  rowReset.appendChild(resetBtn);
+
+  card.append(rowExport, rowImport, rowReset, status);
   $content.appendChild(card);
 }
 

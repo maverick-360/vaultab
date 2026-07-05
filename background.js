@@ -9,6 +9,8 @@ const DEFAULT_SETTINGS = {
   autoCloseMinutes: 20,
   minTabsPerWindow: 5,
   autoClosedCap: 200,
+  idleSeconds: 30,
+  badgeTimer: false,
 };
 
 function uid() {
@@ -70,11 +72,15 @@ chrome.runtime.onInstalled.addListener(async () => {
   await ensureAutoClosedCollection();
   await chrome.alarms.create(SWEEP_ALARM, { periodInMinutes: 1 });
   await stampAllTabs();
+  await applyIdleInterval();
+  await retrack();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await chrome.alarms.create(SWEEP_ALARM, { periodInMinutes: 1 });
   await stampAllTabs();
+  await applyIdleInterval();
+  await retrack();
 });
 
 async function ensureAutoClosedCollection() {
@@ -127,6 +133,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   await touchTabs([tabId]);
+  await retrack();
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -134,12 +141,18 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.status === "complete" || changeInfo.audible) {
     await touchTabs([tabId]);
   }
+  if (changeInfo.url && tab.active) await retrack();
 });
 
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    await closeSegment();
+    await updateBadge(null);
+    return;
+  }
   const [active] = await chrome.tabs.query({ active: true, windowId });
   if (active) await touchTabs([active.id]);
+  await retrack();
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
@@ -152,13 +165,87 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 });
 
 // ---------------------------------------------------------------------------
+// Time tracking: accumulates focused-tab seconds per hostname per day.
+// The open segment lives in storage.session; every relevant event (tab
+// switch, focus change, navigation, idle) closes it out and starts a new
+// one, and the 1-minute alarm flushes it so at most ~1 min can be lost.
+
+async function applyIdleInterval() {
+  const { settings } = await chrome.storage.sync.get("settings");
+  const secs = Math.min(600, Math.max(15, (settings && settings.idleSeconds) || 30));
+  chrome.idle.setDetectionInterval(secs);
+}
+
+async function activeTrackedHost() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab || !/^https?:/.test(tab.url || "")) return null;
+    return new URL(tab.url).hostname;
+  } catch {
+    return null;
+  }
+}
+
+async function closeSegment() {
+  const { trackSeg } = await chrome.storage.session.get("trackSeg");
+  if (!trackSeg) return;
+  await chrome.storage.session.remove("trackSeg");
+  const secs = Math.round((Date.now() - trackSeg.start) / 1000);
+  if (!trackSeg.host || secs <= 0) return;
+  const { timeSpent = {}, timeTrackingSince } =
+    await chrome.storage.local.get(["timeSpent", "timeTrackingSince"]);
+  const day = todayKey();
+  timeSpent[day] = timeSpent[day] || {};
+  timeSpent[day][trackSeg.host] = (timeSpent[day][trackSeg.host] || 0) + secs;
+  const patch = { timeSpent };
+  if (!timeTrackingSince) patch.timeTrackingSince = Date.now() - secs * 1000;
+  await chrome.storage.local.set(patch);
+}
+
+// Closes the current segment and starts tracking whatever is focused now.
+async function retrack() {
+  await closeSegment();
+  const host = await activeTrackedHost();
+  if (host) await chrome.storage.session.set({ trackSeg: { host, start: Date.now() } });
+  await updateBadge(host);
+}
+
+async function updateBadge(host) {
+  const { settings } = await chrome.storage.sync.get("settings");
+  if (!settings || !settings.badgeTimer) return chrome.action.setBadgeText({ text: "" });
+  if (host === undefined) host = await activeTrackedHost();
+  if (!host) return chrome.action.setBadgeText({ text: "" });
+  const { timeSpent = {} } = await chrome.storage.local.get("timeSpent");
+  const secs = (timeSpent[todayKey()] || {})[host] || 0;
+  const mins = Math.round(secs / 60);
+  const text = mins < 60 ? `${mins}m` : `${(mins / 60).toFixed(1)}h`;
+  chrome.action.setBadgeText({ text });
+}
+
+chrome.idle.onStateChanged.addListener(async (state) => {
+  if (state === "active") {
+    await retrack();
+  } else {
+    await closeSegment();
+    await updateBadge(null);
+  }
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.settings) {
+    applyIdleInterval();
+    updateBadge();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Keyboard shortcuts
 
 const QUICK_SAVED_ID = "quick-saved";
 
 function flashBadge(text) {
   chrome.action.setBadgeText({ text });
-  setTimeout(() => chrome.action.setBadgeText({ text: "" }), 1500);
+  setTimeout(() => updateBadge(), 1500); // restore the time badge if enabled
 }
 
 async function quickSave(tab) {
@@ -211,7 +298,10 @@ chrome.commands.onCommand.addListener(async (command) => {
 // Auto-close sweep
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === SWEEP_ALARM) await sweep();
+  if (alarm.name === SWEEP_ALARM) {
+    await retrack(); // flush the open time-tracking segment
+    await sweep();
+  }
 });
 
 async function sweep() {

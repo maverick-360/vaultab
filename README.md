@@ -72,6 +72,21 @@ inactive-tab auto-closer.
 19. **Synced settings** — preferences live in `chrome.storage.sync` and
     follow you across machines signed into the same Chrome profile.
     Collections, stats, and site lists stay local.
+20. **Time tracking** — the popup's ⏱ Time panel shows a donut chart of
+    time spent per site with Today / Daily average / All-time views;
+    click a slice or row to inspect it. Tracking follows the focused tab
+    on http(s) pages, pauses after a configurable idle timeout (Chrome
+    `idle` API), and flushes every minute. Settings offers the idle
+    cutoff, chart gap, an optional toolbar-badge timer, CSV export,
+    "Reset settings", and "Clear all data"; JSON export/import doubles
+    as backup/restore and carries time data (merged additively).
+21. **Time analytics** — the per-site list ends with a Total row and an
+    expandable "Overall stats" block (first/last day, active days, most
+    and least active day, today/all-time totals, daily and pure
+    averages, a per-day timeline, and a Mo–Su weekday histogram).
+    Clicking a site row expands the same detail for that domain, plus
+    visited-days count, today/all-time rank, first/last visit, and an
+    "Open" link.
 
 ## Install (developer mode)
 
@@ -94,8 +109,8 @@ inactive-tab auto-closer.
 
 | File | Purpose |
 | --- | --- |
-| `manifest.json` | MV3 manifest (`tabs`, `storage`, `alarms`, `favicon`) |
-| `background.js` | Service worker: activity tracking, auto-close sweep (1-min alarm), stats |
+| `manifest.json` | MV3 manifest (`tabs`, `storage`, `alarms`, `favicon`, `idle`) |
+| `background.js` | Service worker: activity tracking, auto-close sweep (1-min alarm), stats, time tracking |
 | `popup.*` | Toolbar popup: tab list with lock toggles, save-window |
 | `dashboard.*` | Full-page manager: collections, folders, search, stats, settings |
 | `common.js` | Shared storage/formatting helpers |
@@ -112,6 +127,8 @@ lockedSites:   ["mail.google.com", ...]
 autoCloseList: ["news.ycombinator.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} },
                autoClosedSites: { hostname: count } }
+timeSpent:   { "YYYY-MM-DD": { hostname: seconds } }
+timeTrackingSince: timestamp
 ```
 
 Stored in `chrome.storage.sync` (follows the Chrome profile):

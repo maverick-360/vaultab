@@ -17,6 +17,7 @@
     <button class="tab-btn" data-panel="panel-tabs">
       🪟 Opened tabs <span class="count" id="tabs-count"></span>
     </button>
+    <button class="tab-btn" data-panel="panel-time">⏱ Time</button>
   </div>
 
   <section class="panel" id="panel-autoclosed">
@@ -32,6 +33,23 @@
       ➕ save to collection · 📌 always lock this site · 🔓 → 🔒 lock for this session.
     </div>
     <ul id="tab-list"></ul>
+  </section>
+
+  <section class="panel hidden" id="panel-time">
+    <div class="period-bar">
+      <button class="period-btn" data-period="today">Today</button>
+      <button class="period-btn" data-period="avg">Daily average</button>
+      <button class="period-btn" data-period="all">All-time</button>
+    </div>
+    <div class="donut-wrap">
+      <svg id="donut" viewBox="0 0 200 200"></svg>
+      <div class="donut-center">
+        <div class="pct" id="donut-pct"></div>
+        <div class="site" id="donut-site"></div>
+      </div>
+    </div>
+    <div class="agg-note" id="time-note"></div>
+    <ul id="time-list"></ul>
   </section>
 
   <footer id="autoclose-status"></footer>

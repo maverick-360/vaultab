@@ -10,6 +10,9 @@ const DEFAULT_SETTINGS = {
   theme: "light",
   restoreRemoves: false,
   autoCloseScope: "all", // "all" | "except" (skip listed) | "only" (close listed only)
+  idleSeconds: 30, // stop time tracking after this much inactivity
+  chartGap: 4, // degrees of gap between donut chart slices
+  badgeTimer: false, // show today's time on the toolbar icon
 };
 
 const THEMES = [
