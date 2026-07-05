@@ -279,6 +279,29 @@ main { flex: 1; padding: 20px 28px; max-width: 1100px; }
 
 .empty { padding: 14px; color: var(--muted-2); font-style: italic; }
 
+.tags {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+  align-items: center;
+}
+
+.tag {
+  background: var(--hover-strong);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tag:hover { background: var(--accent); color: var(--accent-text); }
+
+.view-header h2 .tags { margin-left: 6px; }
+.view-header h2 .tag { font-size: 11px; }
+
 .dup-badge {
   flex: none;
   background: var(--mark);

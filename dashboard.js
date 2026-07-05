@@ -301,6 +301,42 @@ function findDuplicateIds(col) {
   return dupIds;
 }
 
+// ---------------------------------------------------------------------------
+// Tags
+
+// Chip strip for a tag array; returns null when there is nothing to show.
+function makeTagChips(tags) {
+  if (!tags || !tags.length) return null;
+  const wrap = document.createElement("span");
+  wrap.className = "tags";
+  for (const tag of tags) {
+    const chip = document.createElement("span");
+    chip.className = "tag";
+    chip.textContent = tag;
+    chip.title = "Search this tag";
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      $searchInput.value = tag;
+      state.query = tag;
+      state.view = "search";
+      renderAll();
+    });
+    wrap.appendChild(chip);
+  }
+  return wrap;
+}
+
+// Prompt-based tag editor; returns the new tag array, or null on cancel.
+function promptForTags(current) {
+  const input = prompt("Tags (comma-separated):", (current || []).join(", "));
+  if (input === null) return null;
+  return parseTags(input);
+}
+
+function tagMatches(tags, q) {
+  return (tags || []).some((t) => t.includes(q));
+}
+
 function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
   const row = document.createElement("div");
   row.className = "tab-row";
@@ -355,6 +391,25 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
     });
   }
 
+  const tagBtn = document.createElement("button");
+  tagBtn.className = "ghost";
+  tagBtn.title = tab.tags && tab.tags.length ? `Edit tags: ${tab.tags.join(", ")}` : "Add tags";
+  tagBtn.textContent = "🏷";
+  tagBtn.addEventListener("click", () => {
+    const tags = promptForTags(tab.tags);
+    if (tags === null) return;
+    mutateCollections((collections) => {
+      const c = findCollection(collections, col.id);
+      const source = folder ? c.folders.find((f) => f.id === folder.id).tabs : c.tabs;
+      const t = source.find((t) => t.id === tab.id);
+      if (t) {
+        if (tags.length) t.tags = tags;
+        else delete t.tags;
+      }
+      return c;
+    });
+  });
+
   const del = document.createElement("button");
   del.className = "ghost danger";
   del.title = "Remove link";
@@ -371,7 +426,9 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
 
   row.append(img, link);
   if (dupBadge) row.appendChild(dupBadge);
-  row.append(host, time, del);
+  const chips = makeTagChips(tab.tags);
+  if (chips) row.appendChild(chips);
+  row.append(host, time, tagBtn, del);
   return row;
 }
 
@@ -409,6 +466,8 @@ async function renderCollectionView() {
       })
     )
   );
+  const colChips = makeTagChips(col.tags);
+  if (colChips) h2.appendChild(colChips);
   const meta = document.createElement("div");
   meta.className = "meta";
   meta.textContent = `Created ${fmtDate(col.createdAt)} · Updated ${fmtDate(col.updatedAt)} · ${collectionTabCount(col)} links`;
@@ -485,6 +544,20 @@ async function renderCollectionView() {
     });
   }
 
+  const tagColBtn = document.createElement("button");
+  tagColBtn.textContent = "🏷 Tags";
+  tagColBtn.title = col.tags && col.tags.length ? `Edit tags: ${col.tags.join(", ")}` : "Tag this collection";
+  tagColBtn.addEventListener("click", () => {
+    const tags = promptForTags(col.tags);
+    if (tags === null) return;
+    mutateCollections((cs) => {
+      const c = findCollection(cs, col.id);
+      if (tags.length) c.tags = tags;
+      else delete c.tags;
+      return c;
+    });
+  });
+
   const hideBtn = document.createElement("button");
   hideBtn.textContent = col.hidden ? "👁 Unhide" : "🙈 Hide";
   hideBtn.title = col.hidden
@@ -519,7 +592,7 @@ async function renderCollectionView() {
 
   toolbar.append(addFolderBtn, addTabsBtn, restoreBtn, newWindowBtn);
   if (dedupeBtn) toolbar.appendChild(dedupeBtn);
-  toolbar.append(hideBtn, deleteBtn);
+  toolbar.append(tagColBtn, hideBtn, deleteBtn);
   header.append(left, toolbar);
   $content.appendChild(header);
 
@@ -548,8 +621,30 @@ async function renderCollectionView() {
       )
     );
 
+    const folderChips = makeTagChips(folder.tags);
+    if (folderChips) head.appendChild(folderChips);
+
     const spacer = document.createElement("span");
     spacer.className = "spacer";
+
+    const tagFolder = document.createElement("button");
+    tagFolder.className = "ghost";
+    tagFolder.textContent = "🏷";
+    tagFolder.title = folder.tags && folder.tags.length
+      ? `Edit tags: ${folder.tags.join(", ")}`
+      : "Tag this folder";
+    tagFolder.addEventListener("click", () => {
+      const tags = promptForTags(folder.tags);
+      if (tags === null) return;
+      mutateCollections((cs) => {
+        const c = findCollection(cs, col.id);
+        const f = c.folders.find((f) => f.id === folder.id);
+        if (tags.length) f.tags = tags;
+        else delete f.tags;
+        f.updatedAt = now();
+        return c;
+      });
+    });
 
     const openAll = document.createElement("button");
     openAll.className = "ghost";
@@ -595,7 +690,7 @@ async function renderCollectionView() {
       });
     });
 
-    head.append(spacer, openAll, hideFolder, delFolder);
+    head.append(spacer, tagFolder, openAll, hideFolder, delFolder);
     card.appendChild(head);
 
     if (!folder.tabs.length) {
@@ -665,13 +760,15 @@ async function renderSearchView() {
   const results = []; // { col, folder|null, tab, reason }
   for (const col of collections) {
     if (col.hidden) continue;
-    const colMatch = col.name.toLowerCase().includes(q);
+    const colMatch = col.name.toLowerCase().includes(q) || tagMatches(col.tags, q);
     const scan = (folder, tabs) => {
-      const folderMatch = folder && folder.name.toLowerCase().includes(q);
+      const folderMatch =
+        folder && (folder.name.toLowerCase().includes(q) || tagMatches(folder.tags, q));
       for (const tab of tabs) {
         const nameMatch = (tab.title || "").toLowerCase().includes(q);
         const urlMatch = (tab.url || "").toLowerCase().includes(q);
-        if (nameMatch || urlMatch || folderMatch || colMatch) {
+        const tagMatch = tagMatches(tab.tags, q);
+        if (nameMatch || urlMatch || tagMatch || folderMatch || colMatch) {
           results.push({ col, folder, tab });
         }
       }
@@ -1258,6 +1355,13 @@ async function renderLockedSites() {
 // ---------------------------------------------------------------------------
 // Import / export
 
+// Coerces an imported tags value into a clean array (or nothing).
+function sanitizeTags(tags) {
+  if (!Array.isArray(tags)) return {};
+  const clean = parseTags(tags.join(","));
+  return clean.length ? { tags: clean } : {};
+}
+
 function sanitizeImportedTabs(tabs) {
   if (!Array.isArray(tabs)) return [];
   return tabs
@@ -1268,6 +1372,7 @@ function sanitizeImportedTabs(tabs) {
       url: t.url,
       addedAt: Number(t.addedAt) || now(),
       ...(Number(t.lastOpenedAt) ? { lastOpenedAt: Number(t.lastOpenedAt) } : {}),
+      ...sanitizeTags(t.tags),
     }));
 }
 
@@ -1289,6 +1394,7 @@ function sanitizeImported(data) {
     createdAt: Number(c && c.createdAt) || ts,
     updatedAt: Number(c && c.updatedAt) || ts,
     hidden: !!(c && c.hidden),
+    ...sanitizeTags(c && c.tags),
     folders: Array.isArray(c && c.folders)
       ? c.folders.map((f) => ({
           id: uid(),
@@ -1296,6 +1402,7 @@ function sanitizeImported(data) {
           createdAt: Number(f && f.createdAt) || ts,
           updatedAt: Number(f && f.updatedAt) || ts,
           hidden: !!(f && f.hidden),
+          ...sanitizeTags(f && f.tags),
           tabs: sanitizeImportedTabs(f && f.tabs),
         }))
       : [],

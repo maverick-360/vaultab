@@ -222,6 +222,21 @@ async function addTabToCollection(tab, collectionId, newName) {
   return col;
 }
 
+// Parses user input ("work, read-later, #ai") into a clean tag array:
+// comma-separated, lowercased, '#' stripped, deduped.
+function parseTags(input) {
+  const seen = new Set();
+  const tags = [];
+  for (const part of String(input || "").split(",")) {
+    const tag = part.trim().replace(/^#/, "").toLowerCase();
+    if (tag && !seen.has(tag)) {
+      seen.add(tag);
+      tags.push(tag);
+    }
+  }
+  return tags;
+}
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")

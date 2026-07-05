@@ -90,6 +90,11 @@ weekday histograms, keyboard shortcuts, undo, themes, and import/export.
     Clicking a site row expands the same detail for that domain, plus
     visited-days count, today/all-time rank, first/last visit, and an
     "Open" link.
+22. **Tags** — links, folders, and collections can be tagged via their 🏷
+    buttons (comma-separated input; tags are lowercased and deduped).
+    Tags render as chips beside the item, clicking a chip searches it,
+    and the dashboard search matches tags alongside names and URLs. Tags
+    survive export/import.
 
 ## Install (developer mode)
 
@@ -123,9 +128,9 @@ weekday histograms, keyboard shortcuts, undo, themes, and import/export.
 Stored in `chrome.storage.local`:
 
 ```
-collections: [{ id, name, createdAt, updatedAt,
-                folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
-                tabs: [{ id, title, url, addedAt, lastOpenedAt? }] }]
+collections: [{ id, name, createdAt, updatedAt, tags?,
+                folders: [{ id, name, createdAt, updatedAt, tags?, tabs: [...] }],
+                tabs: [{ id, title, url, addedAt, lastOpenedAt?, tags? }] }]
 lockedSites:   ["mail.google.com", ...]
 autoCloseList: ["news.ycombinator.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} },
