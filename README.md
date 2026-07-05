@@ -1,158 +1,126 @@
-# Vaultab — Tab Manager, Auto-Close & Time Tracker
+<div align="center">
 
-Vaultab is a Manifest V3 Chrome extension that brings together everything
-you need to tame browser chaos: a full session manager with collections and
-folders, smart auto-close that quietly sweeps away idle tabs and saves them
-for later, per-site tab locking, time-spent analytics with donut charts and
-weekday histograms, keyboard shortcuts, undo, themes, and import/export.
+# 🗂️ Vaultab
 
-## Features
+### Tab Manager, Auto-Close & Time Tracker for Chrome
 
-1. **Collections** — save sets of tabs into named collections. Rename them
-   inline; each collection shows its created-at and updated-at timestamps.
-2. **Folders** — group links inside a collection into folders, rename them,
-   and drag links between folders (or back to the collection root) to move
-   and reorder them. Collections can likewise be reordered by dragging in
-   the sidebar.
-3. **Site-name links** — saved links display the site's page title (falling
-   back to hostname) with its favicon, and open in a new tab when clicked.
-4. **Search** — the dashboard search matches site names, URLs, folder names,
-   and collection names, with highlighted results.
-5. **Auto-close** — tabs inactive for a configurable number of minutes
-   (default 20) are closed automatically and saved to the **Auto Closed**
-   collection so nothing is lost. Inside it, each link is filed into a
-   folder named after its domain, grouping similar tabs together; closing
-   the same URL again replaces the old entry instead of duplicating it,
-   and the size cap applies across all folders (oldest links dropped,
-   empty folders removed). Active, pinned, audible, and non-http(s) tabs
-   are never touched, and a window is never shrunk below a configurable
-   minimum tab count (default 5).
-6. **Tab lock** — in the popup, click 🔓 next to any tab to lock it (🔒);
-   locked tabs are exempt from auto-close. Locks last for the browser
-   session (tab ids reset on restart). For permanent protection, click 📌
-   to always lock the tab's site: locked sites are stored persistently,
-   match subdomains too, and can be managed in **Settings → Locked sites**
-   (patterns containing "/" match anywhere in the URL).
-7. **Stats** — counts of opened, closed, and auto-closed tabs, all-time and
-   per-day (last 14 days shown).
-8. **Single-tab save** — the ➕ button next to any tab in the popup saves
-   just that tab to an existing collection or a brand-new one.
-9. **Themes** — Light, Dark, and Ocean, selectable in Settings; applies to
-   both the popup and the dashboard.
-10. **Import / export** — export all collections to a JSON file and import
-    them back (imported collections are appended, ids regenerated). The
-    accepted format is documented below under "Import format".
-11. **Hide / unhide** — collections and folders can be hidden (🙈). Hidden
-    collections move to a collapsible "Hidden" section in the sidebar;
-    hidden folders disappear behind a "Show hidden folders" toggle in the
-    collection view. Hidden items are excluded from search results.
-12. **Duplicate detection** — repeated URLs within a collection get a "dup"
-    badge and a one-click "Remove duplicates" toolbar button (keeps the
-    first occurrence). The popup offers "Close duplicate tabs" for the
-    current window, keeping the active tab of each group.
-13. **Restore options** — open a collection's links in the current window
-    or a new one; an optional corral-style setting removes links from
-    their collection once opened.
-14. **Auto-close countdown** — the popup shows estimated minutes until
-    each tab auto-closes (∞ for exempt tabs: active, pinned, audible,
-    locked, or on a locked site).
-15. **Auto-close scope** — in Settings, choose whether auto-close applies
-    to all sites, all sites *except* a pattern list (whitelist), or *only*
-    the sites on the list (blacklist). Patterns follow the same rules as
-    locked sites and persist across restarts.
-16. **Stats visualization** — the Stats view renders a grouped bar chart
-    (SVG, no libraries) of the last 14 days of opened/closed/auto-closed
-    counts, plus a "Most auto-closed sites" top-10 ranking backed by
-    uncapped per-hostname counters.
-17. **Keyboard shortcuts** — Ctrl/Cmd+Shift+S saves the current tab to a
-    "Quick saved" collection, Ctrl/Cmd+Shift+L toggles the current tab's
-    lock, Ctrl/Cmd+Shift+K opens the dashboard. Rebind them at
-    `chrome://extensions/shortcuts`. The toolbar badge flashes ✓ / L / U
-    as feedback.
-18. **Undo** — deleting a link, folder, or collection (or removing
-    duplicates) shows a toast with an Undo button for ~6 seconds instead
-    of a confirm dialog. Any newer edit invalidates the pending undo.
-19. **Synced settings** — preferences live in `chrome.storage.sync` and
-    follow you across machines signed into the same Chrome profile.
-    Collections, stats, and site lists stay local.
-20. **Time tracking** — the popup's ⏱ Time panel shows a donut chart of
-    time spent per site with Today / Daily average / All-time views;
-    click a slice or row to inspect it. Tracking follows the focused tab
-    on http(s) pages, pauses after a configurable idle timeout (Chrome
-    `idle` API), and flushes every minute. Settings offers the idle
-    cutoff, chart gap, an optional toolbar-badge timer, CSV export,
-    "Reset settings", and "Clear all data"; JSON export/import doubles
-    as backup/restore and carries time data (merged additively).
-21. **Time analytics** — the per-site list ends with a Total row and an
-    expandable "Overall stats" block (first/last day, active days, most
-    and least active day, today/all-time totals, daily and pure
-    averages, a per-day timeline, and a Mo–Su weekday histogram).
-    Clicking a site row expands the same detail for that domain, plus
-    visited-days count, today/all-time rank, first/last visit, and an
-    "Open" link.
-22. **Tags** — links, folders, and collections can be tagged via their 🏷
-    buttons (comma-separated input; tags are lowercased and deduped).
-    Tags render as chips beside the item, clicking a chip searches it,
-    and the dashboard search matches tags alongside names and URLs. Tags
-    survive export/import.
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-coming%20soon-4285F4?style=flat-square&logo=googlechrome&logoColor=white)](https://github.com/maverick-360/vaultab)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-brightgreen?style=flat-square&logo=googlechrome)](https://developer.chrome.com/docs/extensions/mv3/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)](manifest.json)
 
-## Install (developer mode)
+**Save tabs into organised collections · Auto-close idle tabs · Track time per website**  
+_Everything stays on your device — no accounts, no servers._
 
-1. Open `chrome://extensions`.
-2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select this folder.
+</div>
 
-## Usage
+---
 
-- Click the toolbar icon for the popup, which has two switchable panels:
-  **Auto Closed** lists that collection (click a link to reopen it, 🗑 to
-  discard), and **Opened tabs** shows the current window's tabs with
-  lock/pin/save controls and auto-close countdowns. Click a panel's tab to
-  switch; the last choice is remembered. The **Dashboard** button opens
-  the full manager.
-- The dashboard (also at `dashboard.html`) manages collections, folders,
-  search, stats, and settings.
+## ✨ Features
 
-## Files
+### 📁 Collections & Folders
+Organise saved links into named **collections** and **sub-folders**. Drag-and-drop to reorder or move links between folders. Rename anything inline. Collections and folders can be **hidden** and restored with one click. Everything survives export/import.
+
+### ⏲️ Auto-Close
+Tabs idle for a configurable time (default: 20 min) are automatically closed and filed into an **Auto Closed** collection — grouped by domain, with duplicates replaced instead of stacked. Active, pinned, audible, and locked tabs are never touched. Set scope to all sites, a **whitelist**, or a **blacklist**.
+
+### 🔒 Tab & Site Locking
+Lock individual tabs for the session (🔒) or **permanently lock a site** (📌) so it's always exempt from auto-close. Locked sites match subdomains and persist across restarts. Manage them in **Settings → Locked sites**.
+
+### ⏱️ Time Tracking & Analytics
+The popup's **Time panel** shows a donut chart of time spent per site (Today / Daily avg / All-time). Click any slice to drill into: first & last visit, visited-day count, rank, per-day timeline, and a **weekday histogram**. Tracks the focused tab on http(s) pages, pauses when Chrome is idle.
+
+### 🔍 Search & Duplicate Detection
+Instant search across collection names, folder names, page titles, URLs, and **tags** with highlighted results. Duplicate URLs get a "dup" badge and a one-click **Remove duplicates** button. The popup offers **Close duplicate tabs** for the current window.
+
+### 🏷️ Tags
+Tag any link, folder, or collection via the 🏷 button. Tags render as clickable chips, clicking one searches it. Tags survive export/import.
+
+### 📊 Stats
+A grouped SVG bar chart (no libraries) shows 14 days of opened / closed / auto-closed counts. A **Most auto-closed sites** top-10 table is backed by uncapped per-hostname counters.
+
+### ⌨️ Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl+Shift+S` | Save current tab to "Quick saved" |
+| `Cmd/Ctrl+Shift+L` | Toggle lock on current tab |
+| `Cmd/Ctrl+Shift+K` | Open the dashboard |
+
+Rebind at `chrome://extensions/shortcuts`.
+
+### Other Highlights
+- **Import / Export** — full JSON backup; stats merged additively; CSV time-data export
+- **Undo** — delete anything and undo within 6 seconds, no confirm dialogs
+- **Themes** — Light, Dark, and Ocean (applies to popup + dashboard)
+- **Restore options** — open a collection in current or new window; optionally remove links on open
+- **Synced settings** — preferences follow your Chrome profile across machines
+- **Single-tab save** — ➕ button in popup saves one tab to any collection
+
+---
+
+## 🚀 Install (Developer Mode)
+
+> Chrome Web Store listing coming soon. In the meantime, load it unpacked:
+
+1. Clone or download this repo
+   ```bash
+   git clone https://github.com/maverick-360/vaultab.git
+   ```
+2. Open `chrome://extensions`
+3. Enable **Developer mode** (toggle, top-right)
+4. Click **Load unpacked** → select the `vaultab/` folder
+
+The Vaultab icon appears in your toolbar immediately.
+
+---
+
+## 🖱️ Usage
+
+- **Toolbar popup** — two panels:
+  - **Auto Closed** — browse and reopen recently auto-closed tabs
+  - **Opened Tabs** — all current tabs with lock/pin/save controls and auto-close countdowns
+- **Dashboard** (`Cmd/Ctrl+Shift+K` or the Dashboard button) — full manager: collections, folders, search, tags, stats, settings, import/export
+
+---
+
+## 🏗️ Project Structure
 
 | File | Purpose |
-| --- | --- |
-| `manifest.json` | MV3 manifest (`tabs`, `storage`, `alarms`, `favicon`, `idle`) |
-| `background.js` | Service worker: activity tracking, auto-close sweep (1-min alarm), stats, time tracking |
-| `popup.*` | Toolbar popup: tab list with lock toggles, save-window |
-| `dashboard.*` | Full-page manager: collections, folders, search, stats, settings |
-| `common.js` | Shared storage/formatting helpers |
+|------|---------|
+| `manifest.json` | MV3 manifest — permissions: `tabs`, `storage`, `alarms`, `favicon`, `idle` |
+| `background.js` | Service worker — auto-close sweep (1-min alarm), tab activity & time tracking, stats |
+| `popup.html/js/css` | Toolbar popup — opened tabs panel, auto-closed panel, time panel |
+| `dashboard.html/js/css` | Full-page manager — collections, folders, tags, search, stats, settings |
+| `common.js` | Shared storage helpers and formatters |
+| `icons/` | Extension icons (16, 32, 48, 128 px) |
 
-## Data model
+---
 
-Stored in `chrome.storage.local`:
+## 🗄️ Data Model
 
+**`chrome.storage.local`** (on-device only):
 ```
-collections: [{ id, name, createdAt, updatedAt, tags?,
-                folders: [{ id, name, createdAt, updatedAt, tags?, tabs: [...] }],
-                tabs: [{ id, title, url, addedAt, lastOpenedAt?, tags? }] }]
-lockedSites:   ["mail.google.com", ...]
-autoCloseList: ["news.ycombinator.com", ...]
-stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} },
-               autoClosedSites: { hostname: count } }
-timeSpent:   { "YYYY-MM-DD": { hostname: seconds } }
+collections:       [{ id, name, createdAt, updatedAt, tags?,
+                      folders: [{ id, name, createdAt, updatedAt, tags?, tabs: [...] }],
+                      tabs: [{ id, title, url, addedAt, lastOpenedAt?, tags? }] }]
+lockedSites:       ["mail.google.com", ...]
+autoCloseList:     ["news.ycombinator.com", ...]
+stats:             { opened, closed, autoClosed, byDay, autoClosedSites }
+timeSpent:         { "YYYY-MM-DD": { hostname: seconds } }
 timeTrackingSince: timestamp
 ```
 
-Stored in `chrome.storage.sync` (follows the Chrome profile):
-
+**`chrome.storage.sync`** (follows your Chrome profile):
 ```
-settings:    { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
-               autoClosedCap, theme, restoreRemoves, autoCloseScope }
+settings: { autoCloseEnabled, autoCloseMinutes, minTabsPerWindow,
+            autoClosedCap, theme, restoreRemoves, autoCloseScope }
 ```
 
-## Import format
+---
 
-Import accepts either a full export (`{ "collections": [...] }`) or a bare
-array of collections. Only `url` is required per link; `title`, folder
-names, and timestamps are optional and filled with sensible defaults. If
-the file has a top-level `stats` object (`opened`, `closed`, `autoClosed`,
-`byDay`), its counters are merged additively into your existing stats.
+## 📦 Import Format
+
+Import accepts a full export (`{ "collections": [...] }`) or a bare array. Only `url` is required per tab. Stats objects are merged additively.
 
 ```json
 {
@@ -167,3 +135,33 @@ the file has a top-level `stats` object (`opened`, `closed`, `autoClosed`,
   ]
 }
 ```
+
+---
+
+## 🔐 Privacy
+
+Vaultab stores everything locally using Chrome's built-in storage APIs. **No data is ever sent to any external server.** No analytics, no telemetry, no accounts required.
+
+- `chrome.storage.local` — collections, time data, stats *(stays on your device)*
+- `chrome.storage.sync` — settings only *(synced via Google's infrastructure across your own Chrome profile)*
+
+See [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md) for the full privacy policy draft and permissions justification.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports, and feature requests are welcome!
+
+1. [Open an issue](https://github.com/maverick-360/vaultab/issues) first for significant changes
+2. Fork the repo and create a feature branch
+3. Load the extension unpacked and test your change
+4. Submit a pull request — use the PR template
+
+Please read the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) before submitting.
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 Soumavo Dey

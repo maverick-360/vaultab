@@ -1,1 +1,25 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude settings
+.claude/
+
+# Personal browsing-history exports — keep out of version control
+TabWranglerExport-*.json
+TabKeeper-import-*.json
+TabKeeper-import-from-*.json
+categorized_tabs*.json
+SessionBuddyImport*.json
+*.py
+
+# Temp / build
+*.zip
+node_modules/

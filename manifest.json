@@ -1,9 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Vaultab - Sessions & Auto-Close",
+  "name": "Vaultab - Tab Manager, Auto-Close & Time Tracker",
   "version": "1.0.0",
-  "description": "Save tabs into collections and folders, search everything, auto-close inactive tabs (with tab locking), and track tab stats.",
-  "permissions": ["tabs", "storage", "alarms", "favicon", "idle"],
+  "description": "Save tabs into collections and folders, auto-close idle tabs, lock sites, track time spent per website, and search everything \u2014 all stored locally on your device.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "favicon",
+    "idle"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -13,15 +19,24 @@
   },
   "commands": {
     "save-current-tab": {
-      "suggested_key": { "default": "Ctrl+Shift+S", "mac": "Command+Shift+S" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
       "description": "Save the current tab to the Quick saved collection"
     },
     "lock-current-tab": {
-      "suggested_key": { "default": "Ctrl+Shift+L", "mac": "Command+Shift+L" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
       "description": "Lock/unlock the current tab (exempt from auto-close)"
     },
     "open-dashboard": {
-      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
       "description": "Open the Vaultab dashboard"
     }
   },
