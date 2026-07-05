@@ -1,3 +1,94 @@
+// ---------------------------------------------------------------------------
+// Auto Closed panel
+
+async function removeAutoClosedEntry(entryId) {
+  const collections = await getCollections();
+  const col = collections.find((c) => c.id === AUTO_CLOSED_ID);
+  if (!col) return;
+  col.tabs = col.tabs.filter((t) => t.id !== entryId);
+  for (const f of col.folders) f.tabs = f.tabs.filter((t) => t.id !== entryId);
+  col.folders = col.folders.filter((f) => f.tabs.length);
+  col.updatedAt = now();
+  await setCollections(collections);
+}
+
+async function renderAutoClosed() {
+  const [collections, settings] = await Promise.all([getCollections(), getSettings()]);
+  const col = collections.find((c) => c.id === AUTO_CLOSED_ID);
+  const list = document.getElementById("autoclosed-list");
+  list.textContent = "";
+
+  const entries = col
+    ? [
+        ...col.tabs.map((t) => ({ entry: t, domain: hostnameOf(t.url) })),
+        ...col.folders.flatMap((f) => f.tabs.map((t) => ({ entry: t, domain: f.name }))),
+      ]
+    : [];
+  entries.sort((a, b) => (b.entry.addedAt || 0) - (a.entry.addedAt || 0));
+
+  document.getElementById("autoclosed-count").textContent =
+    entries.length === 1 ? "1 link" : `${entries.length} links`;
+
+  if (!entries.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Nothing auto-closed yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  for (const { entry, domain } of entries.slice(0, 50)) {
+    const li = document.createElement("li");
+
+    const img = document.createElement("img");
+    img.src = faviconUrl(entry.url, 16);
+    img.alt = "";
+
+    const title = document.createElement("span");
+    title.className = "title";
+    title.textContent = entry.title || domain;
+    title.title =
+      `${entry.url}\nClosed ${fmtDate(entry.addedAt)}` +
+      (entry.lastOpenedAt ? `\nLast opened ${fmtDate(entry.lastOpenedAt)}` : "") +
+      "\nClick to reopen";
+    title.addEventListener("click", async () => {
+      chrome.tabs.create({ url: entry.url, active: false });
+      if (settings.restoreRemoves) {
+        await removeAutoClosedEntry(entry.id);
+      } else {
+        await markTabsOpened(AUTO_CLOSED_ID, [entry.id]);
+      }
+      renderAutoClosed();
+    });
+
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = relTime(entry.lastOpenedAt || entry.addedAt);
+    time.title = entry.lastOpenedAt
+      ? `Last opened ${fmtDate(entry.lastOpenedAt)}`
+      : `Closed ${fmtDate(entry.addedAt)}`;
+
+    const dom = document.createElement("span");
+    dom.className = "domain";
+    dom.textContent = domain;
+
+    const del = document.createElement("button");
+    del.className = "del-btn";
+    del.textContent = "🗑";
+    del.title = "Remove from Auto Closed";
+    del.addEventListener("click", async () => {
+      await removeAutoClosedEntry(entry.id);
+      renderAutoClosed();
+    });
+
+    li.append(img, title, time, dom, del);
+    list.appendChild(li);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Opened tabs panel
+
 async function render() {
   const [tabs, lockedTabs, settings, lockedSites, autoCloseList, sessionData] =
     await Promise.all([
@@ -12,6 +103,8 @@ async function render() {
 
   const list = document.getElementById("tab-list");
   list.textContent = "";
+  document.getElementById("tabs-count").textContent =
+    tabs.length === 1 ? "1 tab" : `${tabs.length} tabs`;
 
   for (const tab of tabs) {
     const li = document.createElement("li");
@@ -206,5 +299,29 @@ document.getElementById("save-window").addEventListener("click", async () => {
   setTimeout(() => (btn.textContent = "💾 Save window to collection"), 2000);
 });
 
+// ---------------------------------------------------------------------------
+// Panel switching (one panel visible at a time; last choice remembered)
+
+function setActivePanel(panelId) {
+  document.querySelectorAll(".panel").forEach((p) => {
+    p.classList.toggle("hidden", p.id !== panelId);
+  });
+  document.querySelectorAll(".tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.panel === panelId);
+  });
+  localStorage.setItem("activePanel", panelId);
+}
+
+document.querySelectorAll(".tab-btn").forEach((b) => {
+  b.addEventListener("click", () => setActivePanel(b.dataset.panel));
+});
+
+// Live-refresh the Auto Closed panel if the sweep closes tabs while open.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.collections) renderAutoClosed();
+});
+
+setActivePanel(localStorage.getItem("activePanel") || "panel-autoclosed");
 applyTheme();
 render();
+renderAutoClosed();

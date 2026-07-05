@@ -10,16 +10,29 @@
     <button id="open-dashboard" class="primary">Dashboard</button>
   </header>
 
-  <div class="actions">
-    <button id="save-window">💾 Save window to collection</button>
-    <button id="close-duplicates" class="hidden">🧹 Close duplicate tabs</button>
+  <div class="tab-bar">
+    <button class="tab-btn" data-panel="panel-autoclosed">
+      🗂 Auto Closed <span class="count" id="autoclosed-count"></span>
+    </button>
+    <button class="tab-btn" data-panel="panel-tabs">
+      🪟 Opened tabs <span class="count" id="tabs-count"></span>
+    </button>
   </div>
 
-  <div class="hint">
-    ➕ save to collection · 📌 always lock this site · 🔓 → 🔒 lock for this session.
-  </div>
+  <section class="panel" id="panel-autoclosed">
+    <ul id="autoclosed-list"></ul>
+  </section>
 
-  <ul id="tab-list"></ul>
+  <section class="panel hidden" id="panel-tabs">
+    <div class="actions">
+      <button id="save-window">💾 Save window to collection</button>
+      <button id="close-duplicates" class="hidden">🧹 Close duplicate tabs</button>
+    </div>
+    <div class="hint">
+      ➕ save to collection · 📌 always lock this site · 🔓 → 🔒 lock for this session.
+    </div>
+    <ul id="tab-list"></ul>
+  </section>
 
   <footer id="autoclose-status"></footer>
 

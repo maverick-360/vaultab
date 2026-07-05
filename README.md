@@ -81,8 +81,12 @@ inactive-tab auto-closer.
 
 ## Usage
 
-- Click the toolbar icon for the popup: lock/unlock tabs, save the current
-  window as a collection, or open the **Dashboard**.
+- Click the toolbar icon for the popup, which has two switchable panels:
+  **Auto Closed** lists that collection (click a link to reopen it, 🗑 to
+  discard), and **Opened tabs** shows the current window's tabs with
+  lock/pin/save controls and auto-close countdowns. Click a panel's tab to
+  switch; the last choice is remembered. The **Dashboard** button opens
+  the full manager.
 - The dashboard (also at `dashboard.html`) manages collections, folders,
   search, stats, and settings.
 
@@ -103,7 +107,7 @@ Stored in `chrome.storage.local`:
 ```
 collections: [{ id, name, createdAt, updatedAt,
                 folders: [{ id, name, createdAt, updatedAt, tabs: [...] }],
-                tabs: [{ id, title, url, addedAt }] }]
+                tabs: [{ id, title, url, addedAt, lastOpenedAt? }] }]
 lockedSites:   ["mail.google.com", ...]
 autoCloseList: ["news.ycombinator.com", ...]
 stats:       { opened, closed, autoClosed, byDay: { "YYYY-MM-DD": {...} },

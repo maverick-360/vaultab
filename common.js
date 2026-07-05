@@ -57,6 +57,35 @@ function fmtDate(ts) {
   });
 }
 
+// Compact relative time: "just now", "5m ago", "3h ago", "2d ago", "Jul 1".
+function relTime(ts) {
+  if (!ts) return "";
+  const diff = Date.now() - ts;
+  if (diff < 60000) return "just now";
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return m + "m ago";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + "h ago";
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + "d ago";
+  return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+// Stamps lastOpenedAt on the given links in a collection (called when a
+// link is opened through the extension). Does not bump updatedAt.
+async function markTabsOpened(collectionId, tabIds) {
+  const collections = await getCollections();
+  const col = collections.find((c) => c.id === collectionId);
+  if (!col) return;
+  const ids = new Set(tabIds);
+  const ts = now();
+  for (const t of col.tabs) if (ids.has(t.id)) t.lastOpenedAt = ts;
+  for (const f of col.folders) {
+    for (const t of f.tabs) if (ids.has(t.id)) t.lastOpenedAt = ts;
+  }
+  await setCollections(collections);
+}
+
 function makeTabEntry(tab) {
   return {
     id: uid(),

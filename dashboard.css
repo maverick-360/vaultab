@@ -257,6 +257,13 @@ main { flex: 1; padding: 20px 28px; max-width: 1100px; }
   text-overflow: ellipsis;
 }
 
+.tab-row .tab-time {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 /* ---------- Drag and drop ---------- */
 
 .tab-row[draggable="true"] { cursor: grab; }

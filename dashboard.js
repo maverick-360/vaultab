@@ -313,10 +313,12 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
   link.href = tab.url;
   link.textContent = tab.title || hostnameOf(tab.url);
   link.title = tab.url;
-  link.addEventListener("click", (e) => {
+  link.addEventListener("click", async (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: tab.url, active: false });
-    maybeRemoveRestored(col.id, [tab.id]);
+    const settings = await getSettings();
+    if (settings.restoreRemoves) maybeRemoveRestored(col.id, [tab.id]);
+    else markTabsOpened(col.id, [tab.id]);
   });
 
   let dupBadge = null;
@@ -330,6 +332,13 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
   const host = document.createElement("span");
   host.className = "host";
   host.textContent = hostnameOf(tab.url);
+
+  const time = document.createElement("span");
+  time.className = "tab-time";
+  time.textContent = relTime(tab.lastOpenedAt || tab.addedAt);
+  time.title =
+    `Saved ${fmtDate(tab.addedAt)}` +
+    (tab.lastOpenedAt ? `\nLast opened ${fmtDate(tab.lastOpenedAt)}` : "");
 
   if (draggable) {
     row.draggable = true;
@@ -362,7 +371,7 @@ function renderTabRow(col, folder, tab, draggable = true, isDup = false) {
 
   row.append(img, link);
   if (dupBadge) row.appendChild(dupBadge);
-  row.append(host, del);
+  row.append(host, time, del);
   return row;
 }
 
@@ -441,7 +450,9 @@ async function renderCollectionView() {
     const entries = allEntries();
     if (entries.length > 15 && !confirm(`Open ${entries.length} tabs?`)) return;
     for (const t of entries) chrome.tabs.create({ url: t.url, active: false });
-    maybeRemoveRestored(col.id, entries.map((t) => t.id));
+    const settings = await getSettings();
+    if (settings.restoreRemoves) maybeRemoveRestored(col.id, entries.map((t) => t.id));
+    else markTabsOpened(col.id, entries.map((t) => t.id));
   });
 
   const newWindowBtn = document.createElement("button");
@@ -451,7 +462,9 @@ async function renderCollectionView() {
     if (!entries.length) return;
     if (entries.length > 15 && !confirm(`Open ${entries.length} tabs in a new window?`)) return;
     await chrome.windows.create({ url: entries.map((t) => t.url) });
-    maybeRemoveRestored(col.id, entries.map((t) => t.id));
+    const settings = await getSettings();
+    if (settings.restoreRemoves) maybeRemoveRestored(col.id, entries.map((t) => t.id));
+    else markTabsOpened(col.id, entries.map((t) => t.id));
   });
 
   const dupIds = findDuplicateIds(col);
@@ -542,9 +555,11 @@ async function renderCollectionView() {
     openAll.className = "ghost";
     openAll.title = "Open all links in this folder";
     openAll.textContent = "↗";
-    openAll.addEventListener("click", () => {
+    openAll.addEventListener("click", async () => {
       for (const t of folder.tabs) chrome.tabs.create({ url: t.url, active: false });
-      maybeRemoveRestored(col.id, folder.tabs.map((t) => t.id));
+      const settings = await getSettings();
+      if (settings.restoreRemoves) maybeRemoveRestored(col.id, folder.tabs.map((t) => t.id));
+      else markTabsOpened(col.id, folder.tabs.map((t) => t.id));
     });
 
     const hideFolder = document.createElement("button");
@@ -1156,6 +1171,7 @@ function sanitizeImportedTabs(tabs) {
       title: String(t.title || hostnameOf(t.url)),
       url: t.url,
       addedAt: Number(t.addedAt) || now(),
+      ...(Number(t.lastOpenedAt) ? { lastOpenedAt: Number(t.lastOpenedAt) } : {}),
     }));
 }
 
