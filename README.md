@@ -67,11 +67,11 @@ Rebind at `chrome://extensions/shortcuts`.
 |:---:|:---:|
 | ![Dashboard — collections, folders, tags, undo](images/mock-dashboard.svg) | ![Popup — Auto Closed panel and opened tabs with locks & countdowns](images/mock-popup.svg) |
 
-<div align="center">
+<!-- <div align="center">
 
 ![Time panel — per-site donut chart with Today / Daily average / All-time](images/mock-time.svg)
 
-</div>
+</div> -->
 
 ---
 
