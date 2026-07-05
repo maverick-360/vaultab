@@ -63,15 +63,16 @@ Rebind at `chrome://extensions/shortcuts`.
 
 > Illustrative mockups — load the extension to see the real thing.
 
-| Dashboard | Popup |
-|:---:|:---:|
-| ![Dashboard — collections, folders, tags, undo](images/mock-dashboard.svg) | ![Popup — Auto Closed panel and opened tabs with locks & countdowns](images/mock-popup.svg) |
+<p align="center">
+  <img src="images/mock-dashboard.svg" alt="Dashboard — collections, folders, tags, undo" width="68%" />
+  &nbsp;
+  <img src="images/mock-popup.svg" alt="Popup — Auto Closed panel and opened tabs with locks & countdowns" width="28%" />
+</p>
 
-<!-- <div align="center">
+<p align="center">
+  <img src="images/mock-time.svg" alt="Time panel — per-site donut chart" width="60%" />
+</p>
 
-![Time panel — per-site donut chart with Today / Daily average / All-time](images/mock-time.svg)
-
-</div> -->
 
 ---
 
