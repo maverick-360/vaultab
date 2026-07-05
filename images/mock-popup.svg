@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 480" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+  <rect x="4" y="4" width="432" height="472" rx="10" fill="#f9fafb" stroke="#d1d5db"/>
+
+  <!-- header -->
+  <path d="M4 14 a10 10 0 0 1 10 -10 h412 a10 10 0 0 1 10 10 v30 h-432 z" fill="#111827"/>
+  <text x="20" y="31" font-size="15" font-weight="600" fill="#ffffff">Vaultab</text>
+  <rect x="330" y="12" width="92" height="24" rx="6" fill="#2563eb"/>
+  <text x="346" y="28" font-size="12" fill="#ffffff">Dashboard</text>
+
+  <!-- panel tabs -->
+  <rect x="4" y="44" width="432" height="34" fill="#f3f4f6"/>
+  <rect x="4" y="44" width="150" height="34" fill="#ffffff"/>
+  <rect x="4" y="75" width="150" height="3" fill="#2563eb"/>
+  <text x="18" y="66" font-size="12" font-weight="600" fill="#1f2937">🗂 Auto Closed <tspan fill="#6b7280" font-weight="400" font-size="10">42</tspan></text>
+  <text x="170" y="66" font-size="12" font-weight="600" fill="#6b7280">🪟 Opened tabs <tspan font-weight="400" font-size="10">9</tspan></text>
+  <text x="330" y="66" font-size="12" font-weight="600" fill="#6b7280">⏱ Time</text>
+  <line x1="4" y1="78" x2="436" y2="78" stroke="#e5e7eb"/>
+
+  <!-- auto closed rows -->
+  <g font-size="12">
+    <circle cx="26" cy="98" r="7" fill="#ef4444"/>
+    <text x="44" y="102" fill="#1f2937">How to build MV3 extensions</text>
+    <text x="290" y="102" font-size="10" fill="#6b7280">5m ago</text>
+    <text x="336" y="102" font-size="10" fill="#9ca3af">dev.to</text>
+    <text x="408" y="102" fill="#6b7280">🗑</text>
+    <line x1="4" y1="112" x2="436" y2="112" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="130" r="7" fill="#f59e0b"/>
+    <text x="44" y="134" fill="#1f2937">Weekly planning doc</text>
+    <text x="284" y="134" font-size="10" fill="#6b7280">28m ago</text>
+    <text x="336" y="134" font-size="10" fill="#9ca3af">docs.google…</text>
+    <text x="408" y="134" fill="#6b7280">🗑</text>
+    <line x1="4" y1="144" x2="436" y2="144" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="162" r="7" fill="#10b981"/>
+    <text x="44" y="166" fill="#1f2937">Pull request #128 — fix sweep race</text>
+    <text x="296" y="166" font-size="10" fill="#6b7280">2h ago</text>
+    <text x="336" y="166" font-size="10" fill="#9ca3af">github.com</text>
+    <text x="408" y="166" fill="#6b7280">🗑</text>
+    <line x1="4" y1="176" x2="436" y2="176" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="194" r="7" fill="#6366f1"/>
+    <text x="44" y="198" fill="#1f2937">CSS grid cheatsheet</text>
+    <text x="296" y="198" font-size="10" fill="#6b7280">1d ago</text>
+    <text x="336" y="198" font-size="10" fill="#9ca3af">css-tricks…</text>
+    <text x="408" y="198" fill="#6b7280">🗑</text>
+    <line x1="4" y1="208" x2="436" y2="208" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="226" r="7" fill="#0ea5e9"/>
+    <text x="44" y="230" fill="#1f2937">Flight prices MEL → CCU</text>
+    <text x="296" y="230" font-size="10" fill="#6b7280">2d ago</text>
+    <text x="336" y="230" font-size="10" fill="#9ca3af">kayak.com</text>
+    <text x="408" y="230" fill="#6b7280">🗑</text>
+    <line x1="4" y1="240" x2="436" y2="240" stroke="#eef0f2"/>
+  </g>
+
+  <!-- opened tabs preview (second half) -->
+  <rect x="4" y="252" width="432" height="30" fill="#f3f4f6"/>
+  <text x="18" y="271" font-size="11" font-weight="600" fill="#6b7280">OPENED TABS (with lock &amp; countdown)</text>
+
+  <g font-size="12">
+    <circle cx="26" cy="302" r="7" fill="#10b981"/>
+    <text x="44" y="306" fill="#1f2937">Inbox — mail.google.com</text>
+    <text x="300" y="306" font-size="10" fill="#6b7280">∞</text>
+    <text x="330" y="306">➕ 📌 🔒</text>
+    <line x1="4" y1="318" x2="436" y2="318" stroke="#eef0f2"/>
+
+    <rect x="4" y="320" width="432" height="32" fill="#fef9c3"/>
+    <circle cx="26" cy="336" r="7" fill="#f59e0b"/>
+    <text x="44" y="340" fill="#1f2937">Design review doc (locked)</text>
+    <text x="300" y="340" font-size="10" fill="#6b7280">∞</text>
+    <text x="330" y="340">➕ 📌 🔒</text>
+    <line x1="4" y1="352" x2="436" y2="352" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="370" r="7" fill="#ef4444"/>
+    <text x="44" y="374" fill="#1f2937">Random article opened at lunch</text>
+    <text x="296" y="374" font-size="10" fill="#dc2626" font-weight="700">4m</text>
+    <text x="330" y="374">➕ 📌 🔓</text>
+    <line x1="4" y1="386" x2="436" y2="386" stroke="#eef0f2"/>
+
+    <circle cx="26" cy="404" r="7" fill="#6366f1"/>
+    <text x="44" y="408" fill="#1f2937">Stack Overflow — service workers</text>
+    <text x="292" y="408" font-size="10" fill="#6b7280">13m</text>
+    <text x="330" y="408">➕ 📌 🔓</text>
+  </g>
+
+  <!-- footer -->
+  <line x1="4" y1="430" x2="436" y2="430" stroke="#e5e7eb"/>
+  <text x="18" y="452" font-size="10" fill="#6b7280">Auto-close: on — tabs inactive for 20 min are saved to "Auto Closed" and closed.</text>
+</svg>

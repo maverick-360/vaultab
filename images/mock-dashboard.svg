@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+  <!-- window frame -->
+  <rect width="900" height="560" rx="12" fill="#f3f4f6" stroke="#d1d5db"/>
+  <rect width="900" height="36" rx="12" fill="#e5e7eb"/>
+  <rect y="24" width="900" height="12" fill="#e5e7eb"/>
+  <circle cx="24" cy="18" r="6" fill="#f87171"/>
+  <circle cx="44" cy="18" r="6" fill="#fbbf24"/>
+  <circle cx="64" cy="18" r="6" fill="#34d399"/>
+  <rect x="90" y="8" width="420" height="20" rx="10" fill="#f9fafb" stroke="#d1d5db"/>
+  <text x="104" y="22" font-size="11" fill="#9ca3af">chrome-extension://vaultab/dashboard.html</text>
+
+  <!-- sidebar -->
+  <path d="M0 36 h230 v524 h-218 a12 12 0 0 1 -12 -12 z" fill="#111827"/>
+  <text x="24" y="72" font-size="18" font-weight="700" fill="#ffffff">Vaultab</text>
+  <text x="24" y="100" font-size="10" fill="#9ca3af" letter-spacing="1">COLLECTIONS  ＋</text>
+
+  <rect x="14" y="112" width="202" height="28" rx="6" fill="#2563eb"/>
+  <text x="24" y="131" font-size="13" fill="#ffffff">Research <tspan fill="#bfdbfe">18</tspan></text>
+  <text x="24" y="163" font-size="13" fill="#d1d5db">Auto Closed <tspan fill="#6b7280">42</tspan></text>
+  <text x="24" y="193" font-size="13" fill="#d1d5db">Reading list <tspan fill="#6b7280">7</tspan></text>
+  <text x="24" y="223" font-size="13" fill="#d1d5db">Quick saved <tspan fill="#6b7280">5</tspan></text>
+  <text x="24" y="253" font-size="12" fill="#6b7280" font-style="italic">▸ Hidden (1)</text>
+
+  <text x="24" y="295" font-size="10" fill="#9ca3af" letter-spacing="1">VIEWS</text>
+  <text x="24" y="322" font-size="13" fill="#d1d5db">📊 Stats</text>
+  <text x="24" y="350" font-size="13" fill="#d1d5db">⚙️ Settings</text>
+
+  <!-- search bar -->
+  <rect x="254" y="56" width="620" height="36" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="268" y="79" font-size="13" fill="#9ca3af">Search by site name, URL, folder or collection…</text>
+
+  <!-- collection header -->
+  <text x="254" y="130" font-size="20" font-weight="700" fill="#1f2937">Research ✏️</text>
+  <rect x="366" y="115" width="44" height="18" rx="9" fill="#e5e7eb"/>
+  <text x="376" y="128" font-size="10" font-weight="600" fill="#6b7280">work</text>
+  <text x="254" y="150" font-size="11" fill="#6b7280">Created Jul 2, 2026 · Updated Jul 5, 2026 · 18 links</text>
+
+  <!-- toolbar -->
+  <g font-size="11" fill="#1f2937">
+    <rect x="560" y="112" width="92" height="26" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="570" y="129">＋ New folder</text>
+    <rect x="660" y="112" width="76" height="26" rx="6" fill="#2563eb"/>
+    <text x="672" y="129" fill="#ffffff">↗ Open all</text>
+    <rect x="744" y="112" width="60" height="26" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="754" y="129">🏷 Tags</text>
+    <rect x="812" y="112" width="62" height="26" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="822" y="129">🙈 Hide</text>
+  </g>
+
+  <!-- folder card -->
+  <rect x="254" y="170" width="620" height="164" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="254" y="170" width="620" height="38" rx="10" fill="#f9fafb"/>
+  <rect x="254" y="196" width="620" height="12" fill="#f9fafb"/>
+  <line x1="254" y1="208" x2="874" y2="208" stroke="#e5e7eb"/>
+  <text x="270" y="194" font-size="13" font-weight="600" fill="#1f2937">📁 Docs ✏️</text>
+  <text x="800" y="194" font-size="13" fill="#6b7280">🏷 ↗ 🙈 🗑</text>
+
+  <g font-size="13">
+    <circle cx="280" cy="230" r="7" fill="#f59e0b"/>
+    <text x="298" y="235" fill="#1d4ed8">MDN Web Docs</text>
+    <text x="470" y="235" font-size="11" fill="#9ca3af">developer.mozilla.org</text>
+    <text x="790" y="235" font-size="11" fill="#6b7280">2h ago · 🗑</text>
+    <line x1="254" y1="248" x2="874" y2="248" stroke="#f1f3f5"/>
+
+    <circle cx="280" cy="270" r="7" fill="#10b981"/>
+    <text x="298" y="275" fill="#1d4ed8">Chrome Extensions Guide</text>
+    <rect x="480" y="260" width="58" height="17" rx="8" fill="#e5e7eb"/>
+    <text x="490" y="272" font-size="10" font-weight="600" fill="#6b7280">reference</text>
+    <text x="560" y="275" font-size="11" fill="#9ca3af">developer.chrome.com</text>
+    <text x="790" y="275" font-size="11" fill="#6b7280">1d ago · 🗑</text>
+    <line x1="254" y1="288" x2="874" y2="288" stroke="#f1f3f5"/>
+
+    <circle cx="280" cy="310" r="7" fill="#6366f1"/>
+    <text x="298" y="315" fill="#1d4ed8">Can I use — CSS nesting</text>
+    <text x="470" y="315" font-size="11" fill="#9ca3af">caniuse.com</text>
+    <text x="780" y="315" font-size="11" fill="#6b7280">just now · 🗑</text>
+  </g>
+
+  <!-- root links card -->
+  <rect x="254" y="350" width="620" height="120" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="254" y="350" width="620" height="38" rx="10" fill="#f9fafb"/>
+  <rect x="254" y="376" width="620" height="12" fill="#f9fafb"/>
+  <line x1="254" y1="388" x2="874" y2="388" stroke="#e5e7eb"/>
+  <text x="270" y="374" font-size="13" font-weight="600" fill="#1f2937">Links (no folder)</text>
+
+  <g font-size="13">
+    <circle cx="280" cy="410" r="7" fill="#ef4444"/>
+    <text x="298" y="415" fill="#1d4ed8">Hacker News</text>
+    <rect x="410" y="400" width="32" height="17" rx="8" fill="#fde68a"/>
+    <text x="418" y="412" font-size="10" font-weight="600" fill="#92400e">dup</text>
+    <text x="470" y="415" font-size="11" fill="#9ca3af">news.ycombinator.com</text>
+    <text x="790" y="415" font-size="11" fill="#6b7280">3d ago · 🗑</text>
+    <line x1="254" y1="428" x2="874" y2="428" stroke="#f1f3f5"/>
+
+    <circle cx="280" cy="450" r="7" fill="#0ea5e9"/>
+    <text x="298" y="455" fill="#1d4ed8">Wikipedia</text>
+    <text x="470" y="455" font-size="11" fill="#9ca3af">wikipedia.org</text>
+    <text x="790" y="455" font-size="11" fill="#6b7280">Jul 1 · 🗑</text>
+  </g>
+
+  <!-- undo toast -->
+  <rect x="330" y="500" width="300" height="38" rx="8" fill="#111827"/>
+  <text x="350" y="524" font-size="13" fill="#e5e7eb">Removed "Old link"</text>
+  <text x="560" y="524" font-size="13" font-weight="700" fill="#60a5fa">Undo</text>
+</svg>

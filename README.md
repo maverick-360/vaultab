@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🗂️ Vaultab
+![Vaultab hero](images/hero.svg)
 
 ### Tab Manager, Auto-Close & Time Tracker for Chrome
 
@@ -11,6 +11,7 @@
 
 **Save tabs into organised collections · Auto-close idle tabs · Track time per website**  
 _Everything stays on your device — no accounts, no servers._
+
 
 </div>
 
@@ -55,6 +56,22 @@ Rebind at `chrome://extensions/shortcuts`.
 - **Restore options** — open a collection in current or new window; optionally remove links on open
 - **Synced settings** — preferences follow your Chrome profile across machines
 - **Single-tab save** — ➕ button in popup saves one tab to any collection
+
+---
+
+## 📸 Screenshots
+
+> Illustrative mockups — load the extension to see the real thing.
+
+| Dashboard | Popup |
+|:---:|:---:|
+| ![Dashboard — collections, folders, tags, undo](images/mock-dashboard.svg) | ![Popup — Auto Closed panel and opened tabs with locks & countdowns](images/mock-popup.svg) |
+
+<div align="center">
+
+![Time panel — per-site donut chart with Today / Daily average / All-time](images/mock-time.svg)
+
+</div>
 
 ---
 
